@@ -1,0 +1,13 @@
+#!/bin/sh
+# Block commits that contain secrets or unformatted Go code.
+set -e
+
+gitleaks git --staged --redact --no-banner
+
+unformatted=$(gofmt -l $(git diff --cached --name-only --diff-filter=ACM -- '*.go'))
+if [ -n "$unformatted" ]; then
+	echo "gofmt needed on:" >&2
+	echo "$unformatted" >&2
+	echo "run: make fmt" >&2
+	exit 1
+fi

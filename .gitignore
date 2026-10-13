@@ -1,0 +1,9 @@
+/bin/
+/dist/
+coverage.out
+*.log
+.delegate/
+.delegate.yaml
+.idea/
+*.iml
+.DS_Store
