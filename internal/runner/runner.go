@@ -4,6 +4,9 @@ package runner
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os/exec"
+	"strings"
 )
 
 // Profile describes how to invoke one agent CLI.
@@ -30,5 +33,23 @@ type Result struct {
 
 // Run executes task with profile and reports the result.
 func Run(ctx context.Context, profile Profile, task Task) (Result, error) {
-	return Result{}, errors.New("not implemented")
+	args := make([]string, 0, len(profile.Args))
+	for _, arg := range profile.Args {
+		args = append(args, strings.ReplaceAll(arg, "{prompt}", task.Prompt))
+	}
+
+	cmd := exec.CommandContext(ctx, profile.Command, args...)
+	cmd.Dir = task.Dir
+	stdout, err := cmd.Output()
+	output := string(stdout)
+
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return Result{ExitCode: exitErr.ExitCode(), Output: output}, nil
+	}
+	if err != nil {
+		return Result{}, fmt.Errorf("run %s: %w", profile.Command, err)
+	}
+
+	return Result{ExitCode: 0, Output: output}, nil
 }
