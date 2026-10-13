@@ -84,6 +84,29 @@ func TestRun_ReturnsErrorWhenCommandIsMissing(t *testing.T) {
 	}
 }
 
+func TestRun_CapturesStderrSeparatelyFromOutput(t *testing.T) {
+	// Workers print progress and warnings on stderr; the planner needs both
+	// streams, and the summary must only come from stdout.
+	profile := runner.Profile{
+		Name:    "sh",
+		Command: "sh",
+		Args:    []string{"-c", "echo done; echo warning >&2"},
+	}
+	task := runner.Task{Prompt: "implement TEST-1", Dir: t.TempDir()}
+
+	result, err := runner.Run(t.Context(), profile, task)
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	if got, want := result.Output, "done\n"; got != want {
+		t.Errorf("Output = %q, want %q", got, want)
+	}
+	if got, want := result.Stderr, "warning\n"; got != want {
+		t.Errorf("Stderr = %q, want %q", got, want)
+	}
+}
+
 func TestRun_StopsWorkerAfterProfileTimeout(t *testing.T) {
 	// A stuck worker must not block the planner forever.
 	profile := runner.Profile{

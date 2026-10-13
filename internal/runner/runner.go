@@ -2,6 +2,7 @@
 package runner
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -32,6 +33,8 @@ type Result struct {
 	ExitCode int
 	// Output is the command's stdout.
 	Output string
+	// Stderr is the command's stderr, kept separate so it never pollutes Output.
+	Stderr string
 	// TimedOut is true when the command was stopped by Profile.Timeout.
 	TimedOut bool
 }
@@ -51,22 +54,27 @@ func Run(ctx context.Context, profile Profile, task Task) (Result, error) {
 
 	cmd := exec.CommandContext(ctx, profile.Command, args...)
 	cmd.Dir = task.Dir
-	stdout, err := cmd.Output()
-	output := string(stdout)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	output := stdout.String()
+	errOutput := stderr.String()
 
 	if err != nil && errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		return Result{ExitCode: -1, Output: output, TimedOut: true}, nil
+		return Result{ExitCode: -1, Output: output, TimedOut: true, Stderr: errOutput}, nil
 	}
 
 	var exitErr *exec.ExitError
 
 	if errors.As(err, &exitErr) {
-		return Result{ExitCode: exitErr.ExitCode(), Output: output}, nil
+		return Result{ExitCode: exitErr.ExitCode(), Output: output, Stderr: errOutput}, nil
 	}
 
 	if err != nil {
 		return Result{}, fmt.Errorf("run %s: %w", profile.Command, err)
 	}
 
-	return Result{ExitCode: 0, Output: output}, nil
+	return Result{ExitCode: 0, Output: output, Stderr: errOutput}, nil
 }
