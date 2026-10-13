@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os/exec"
 	"testing"
+	"time"
 
 	"github.com/afplana/delegate/internal/runner"
 )
@@ -80,5 +81,30 @@ func TestRun_ReturnsErrorWhenCommandIsMissing(t *testing.T) {
 	_, err := runner.Run(t.Context(), profile, task)
 	if !errors.Is(err, exec.ErrNotFound) {
 		t.Errorf("Run() error = %v, want it to wrap exec.ErrNotFound", err)
+	}
+}
+
+func TestRun_StopsWorkerAfterProfileTimeout(t *testing.T) {
+	// A stuck worker must not block the planner forever.
+	profile := runner.Profile{
+		Name:    "sleep",
+		Command: "sleep",
+		Args:    []string{"3"},
+		Timeout: 100 * time.Millisecond,
+	}
+	task := runner.Task{Prompt: "implement TEST-1", Dir: t.TempDir()}
+
+	start := time.Now()
+	result, err := runner.Run(t.Context(), profile, task)
+	elapsed := time.Since(start)
+
+	if err != nil {
+		t.Fatalf("Run() error = %v, want nil: a timeout is a Result, not an error", err)
+	}
+	if !result.TimedOut {
+		t.Error("TimedOut = false, want true")
+	}
+	if elapsed > 2*time.Second {
+		t.Errorf("Run() took %v, want the worker stopped near its 100ms timeout", elapsed)
 	}
 }
