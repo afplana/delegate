@@ -65,7 +65,7 @@ appends it.
 
 ## 2. Delegate
 
-Pick the profile: `claude-sonnet` (default) or `cursor`. Use what the user
+Pick the profile: `cursor` (default) or `claude-sonnet`. Use what the user
 named; otherwise the default.
 
 Run it with the Bash tool **in the background** (`run_in_background: true`):
