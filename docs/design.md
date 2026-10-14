@@ -29,7 +29,7 @@ Plan with Opus and code with Sonnet, plan with Opus and code with Cursor — sam
 ```
 delegate run --task plan.md [--profile cursor] [--repo .] [--in-place] [--timeout 30m]   # v1
 delegate version                                                                          # v1
-delegate profiles            # later: list profiles and whether their binary is on PATH
+delegate profiles                                                                         # v1: list profiles and whether their binary is on PATH
 delegate doctor              # later: check config + backends
 delegate skill install       # later: copy the Claude Code skill into ~/.claude/skills (copy, never symlink)
 ```

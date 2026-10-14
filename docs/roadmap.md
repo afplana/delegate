@@ -32,7 +32,8 @@ Every card ends the same way: `make check` green, then a commit.
 | Files changed and diffstat, including new and committed files | ✅ v1 |
 | One-line JSON result; `status` ok, failed, timeout or error | ✅ v1 |
 | Claude Code skill: plan → delegate → review → report, one round | ✅ v1 (in repo, not installed) |
-| `delegate profiles`, `doctor`, `skill install` | ⬜ cards 9a–9c |
+| `delegate profiles` | ✅ |
+| `delegate doctor`, `skill install` | ⬜ cards 9b–9c |
 | YAML config merged over the built-ins | ⬜ card 11 |
 | Large prompts via stdin | ⬜ card 12 |
 | Clean up old worktrees and runs | ⬜ card 13 |
@@ -78,11 +79,11 @@ Answer each in one or two sentences, out loud or in chat:
 
 ## Backlog cards
 
-### 9a ⬜ `delegate profiles` (about 20 minutes, good first card)
+### 9a ✅ `delegate profiles` (about 20 minutes, good first card)
 
 List the profiles and whether each binary is on `PATH`.
 
-- Files: `cmd/delegate/profiles.go`, `cmd/delegate/main_test.go`
+- Files: `cmd/delegate/profiles.go`, `cmd/delegate/profiles_test.go`
 - Seam: `runCommands(ctx, []string{"profiles"}, &out, &errOut, profiles)`
 - Test idea: a fake profile with `Command: "sh"` shows `found`; one with `Command: "no-such-bin"` shows `missing`.
 - Idioms: `exec.LookPath`, `text/tabwriter`, `slices.Sorted(maps.Keys(m))`.
