@@ -1,0 +1,14 @@
+# Same framework and lint hook as Lyft Go services, using the public upstream
+# repos instead of Lyft's private golangci-lint fork.
+repos:
+-   repo: https://github.com/golangci/golangci-lint
+    rev: v2.14.0
+    hooks:
+    -   id: golangci-lint-full
+-   repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+    -   id: gitleaks-system
+        # Upstream omits this for the -system variant; gitleaks scans the
+        # staged diff itself and treats extra filename args as a git dir.
+        pass_filenames: false
