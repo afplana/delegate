@@ -102,9 +102,9 @@ By default each run gets its own git worktree on branch `delegate/<run-id>`.
 ## Slices (TDD order)
 
 1. ✅ scaffold — `runner.Run` passes `{prompt}` to a command and captures stdout
-2. non-zero exit → `Result.ExitCode`, not an error; missing binary → error
-3. timeout via `context` → `status: timeout`
-4. stderr + log dir written
+2. ✅ non-zero exit → `Result.ExitCode`, not an error; missing binary → error
+3. ✅ timeout via `context` → `Result.TimedOut` (mapped to `status: timeout` in slice 8)
+4. ✅ stderr captured (log dir moved to slice 8, where the run id exists)
 5. summary extraction (`<delegate-summary>` block, fallback: output tail)
 6. `config.Load` + profile lookup
 7. `workspace`: worktree + diffstat
