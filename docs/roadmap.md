@@ -40,6 +40,7 @@ Every card ends the same way: `make check` green, then a commit.
 | Codex and Gemini profiles, verified | ⬜ card 14 |
 | Dirty-repo warning in the result | ⬜ card 15 |
 | Public release | ⬜ card 16 |
+| Recursion guard: a worker cannot start its own delegate run | ⬜ card 17 (Alain codes) |
 
 ## v1 slices (done)
 
@@ -155,6 +156,26 @@ non-empty in the source repo.
 - `gitleaks git` over the full history; grep for company names, internal hosts and ticket keys.
 - Tag `v0.1.0`; optionally add goreleaser for binaries.
 - Flip the repo to public.
+
+### 17 ⬜ Recursion guard (about 30 minutes) — Alain codes, Claude helps (mode 2)
+
+A worker is a full agent session (`claude -p` loads your user skills, including
+`delegate`), so a plan saying "delegate X" could make the worker start its own
+worker. Not seen so far (checked 2026-10-14), but cheap to prevent.
+
+Guard inside delegate itself, so it works for every CLI and stays role-agnostic:
+
+1. `runner.Run` passes `DELEGATE_RUN_ID=<run id>` to the worker
+   (`cmd.Env = append(os.Environ(), ...)`; add a `Task.Env` or `RunID` field).
+2. `delegate run` refuses to start when `DELEGATE_RUN_ID` is already set:
+   `status: error`, `error: "nested delegate run inside run <id>"`.
+
+- Files: `internal/runner/runner.go`, `cmd/delegate/run.go`, their tests.
+- Test seams: a profile `sh -c 'echo $DELEGATE_RUN_ID'` returns the id in `Output`;
+  `t.Setenv("DELEGATE_RUN_ID", "outer")` then `runCommands(... "run" ...)` returns status `error`.
+- Idioms: `os.Environ`, `cmd.Env`, `os.LookupEnv`, `t.Setenv`.
+- Optional second layer: block the skill in the `claude-sonnet` profile args.
+  Check `claude --help` for the exact disallowed-tools syntax first (UNVERIFIED).
 
 ## Known limitations (v1)
 
