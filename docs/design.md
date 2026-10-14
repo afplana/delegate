@@ -27,7 +27,7 @@ Plan with Opus and code with Sonnet, plan with Opus and code with Cursor — sam
 ## CLI surface
 
 ```
-delegate run --task plan.md [--profile cursor] [--repo .] [--in-place] [--timeout 30m]   # v1
+delegate run --task plan.md [--profile claude-sonnet] [--repo .] [--in-place] [--timeout 30m]   # v1
 delegate version                                                                          # v1
 delegate profiles                                                                         # v1: list profiles and whether their binary is on PATH
 delegate doctor              # later: check config + backends
@@ -38,11 +38,11 @@ Exit codes: 0 = status ok, 1 = any other status (JSON still printed), 2 = bad fl
 
 ## Config
 
-v1 ships the `cursor` and `claude-sonnet` profiles built in (`internal/config`).
+v1 ships the `claude-sonnet` (default) and `cursor` profiles built in (`internal/config`).
 Later (roadmap card 11): `~/.config/delegate/config.yaml`, optionally overridden by `<repo>/.delegate.yaml`, merged over the built-ins.
 
 ```yaml
-default_profile: cursor
+default_profile: claude-sonnet
 profiles:
   cursor:
     command: cursor-agent

@@ -12,8 +12,9 @@ import (
 	"github.com/afplana/delegate/internal/runner"
 )
 
-// DefaultProfile is used when the caller does not pass --profile.
-const DefaultProfile = "cursor"
+// DefaultProfile is used when the caller does not pass --profile. Not cursor:
+// org-managed Cursor accounts can disable --force, which that profile needs.
+const DefaultProfile = "claude-sonnet"
 
 const defaultTimeout = 30 * time.Minute
 

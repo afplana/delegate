@@ -26,7 +26,7 @@ Every card ends the same way: `make check` green, then a commit.
 | Per-profile timeout; `--timeout` override | ✅ v1 |
 | stdout and stderr captured separately and saved to a log dir | ✅ v1 |
 | Worker summary from `<delegate-summary>`, fallback to the last 20 lines | ✅ v1 |
-| Built-in profiles: `cursor` (default), `claude-sonnet` | ✅ v1 |
+| Built-in profiles: `claude-sonnet` (default), `cursor` | ✅ v1 |
 | Isolated git worktree per run on branch `delegate/<run-id>` | ✅ v1 |
 | `--in-place` mode, refused on `main`/`master` | ✅ v1 |
 | Files changed and diffstat, including new and committed files | ✅ v1 |
@@ -161,6 +161,9 @@ non-empty in the source repo.
 - The worker runs with the permissions its CLI grants in print mode: Cursor's
   `--force` runs any command; Claude's `acceptEdits` allows edits, but shell
   commands outside your Claude allow-list are denied.
+- The `cursor` profile needs `--force`. Org-managed Cursor accounts can disable
+  it ("Run Everything"), and every run then fails within seconds. That is why
+  `claude-sonnet` is the default.
 - No progress output while the worker runs; `delegate` is silent until it ends.
 - macOS and Linux only: on timeout or Ctrl-C the worker's whole process group
   is killed (`syscall.Kill`), which does not compile on Windows.

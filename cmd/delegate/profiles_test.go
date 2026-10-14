@@ -27,7 +27,7 @@ func TestProfilesListsBinaryAvailability(t *testing.T) {
 	require.Len(t, lines, 3)
 	assert.Equal(t, []string{"PROFILE", "COMMAND", "BINARY"}, strings.Fields(lines[0]))
 
-	// "absent" sorts before "cursor".
+	// "absent" sorts before the default profile.
 	absent := strings.Fields(lines[1])
 	require.Len(t, absent, 3)
 	assert.Equal(t, "absent", absent[0])
