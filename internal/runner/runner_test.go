@@ -1,75 +1,65 @@
 package runner_test
 
 import (
-	"errors"
 	"os/exec"
 	"testing"
 	"time"
 
 	"github.com/afplana/delegate/internal/runner"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestRun_PassesPromptToCommandAndCapturesOutput(t *testing.T) {
-	profile := runner.Profile{
-		Name:    "echo",
-		Command: "echo",
-		Args:    []string{"{prompt}"},
-	}
-	task := runner.Task{Prompt: "implement TEST-1", Dir: t.TempDir()}
-
-	result, err := runner.Run(t.Context(), profile, task)
-	if err != nil {
-		t.Fatalf("Run() error = %v", err)
-	}
-
-	if result.ExitCode != 0 {
-		t.Errorf("ExitCode = %d, want 0", result.ExitCode)
-	}
-	if got, want := result.Output, "implement TEST-1\n"; got != want {
-		t.Errorf("Output = %q, want %q", got, want)
-	}
-}
-
-func TestRun_KeepsFixedArgsAroundThePrompt(t *testing.T) {
-	// Real profiles look like: cursor-agent -p --force "{prompt}".
-	// printf proves every arg arrives, in order, with only {prompt} replaced.
-	profile := runner.Profile{
-		Name:    "printf",
-		Command: "printf",
-		Args:    []string{"[%s]", "{prompt}"},
-	}
-	task := runner.Task{Prompt: "implement TEST-1", Dir: t.TempDir()}
-
-	result, err := runner.Run(t.Context(), profile, task)
-	if err != nil {
-		t.Fatalf("Run() error = %v", err)
-	}
-
-	if got, want := result.Output, "[implement TEST-1]"; got != want {
-		t.Errorf("Output = %q, want %q", got, want)
-	}
-}
-
-func TestRun_ReportsWorkerFailureAsResultNotError(t *testing.T) {
-	// A worker that exits non-zero is a normal outcome the planner must see,
-	// together with whatever it printed before failing.
-	profile := runner.Profile{
-		Name:    "sh",
-		Command: "sh",
-		Args:    []string{"-c", "echo partial work; exit 3"},
-	}
-	task := runner.Task{Prompt: "implement TEST-1", Dir: t.TempDir()}
-
-	result, err := runner.Run(t.Context(), profile, task)
-	if err != nil {
-		t.Fatalf("Run() error = %v, want nil: a failing worker is a Result, not an error", err)
+func TestRun_ReportsWhatTheWorkerDid(t *testing.T) {
+	tests := []struct {
+		name         string
+		profile      runner.Profile
+		wantExitCode int
+		wantOutput   string
+		wantStderr   string
+	}{
+		{
+			name:       "passes the prompt and captures stdout",
+			profile:    runner.Profile{Name: "echo", Command: "echo", Args: []string{"{prompt}"}},
+			wantOutput: "implement TEST-1\n",
+		},
+		{
+			// Real profiles look like: cursor-agent -p --force "{prompt}".
+			// printf proves every arg arrives, in order, with only {prompt} replaced.
+			name:       "keeps fixed args around the prompt",
+			profile:    runner.Profile{Name: "printf", Command: "printf", Args: []string{"[%s]", "{prompt}"}},
+			wantOutput: "[implement TEST-1]",
+		},
+		{
+			// A worker that exits non-zero is a normal outcome the planner must see,
+			// together with whatever it printed before failing.
+			name:         "reports worker failure as a result, not an error",
+			profile:      runner.Profile{Name: "sh", Command: "sh", Args: []string{"-c", "echo partial work; exit 3"}},
+			wantExitCode: 3,
+			wantOutput:   "partial work\n",
+		},
+		{
+			// The summary must only come from stdout, so stderr stays separate.
+			name:       "captures stderr separately from output",
+			profile:    runner.Profile{Name: "sh", Command: "sh", Args: []string{"-c", "echo done; echo warning >&2"}},
+			wantOutput: "done\n",
+			wantStderr: "warning\n",
+		},
 	}
 
-	if result.ExitCode != 3 {
-		t.Errorf("ExitCode = %d, want 3", result.ExitCode)
-	}
-	if got, want := result.Output, "partial work\n"; got != want {
-		t.Errorf("Output = %q, want %q", got, want)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			task := runner.Task{Prompt: "implement TEST-1", Dir: t.TempDir()}
+
+			result, err := runner.Run(t.Context(), tt.profile, task)
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantExitCode, result.ExitCode)
+			assert.Equal(t, tt.wantOutput, result.Output)
+			assert.Equal(t, tt.wantStderr, result.Stderr)
+			assert.False(t, result.TimedOut)
+		})
 	}
 }
 
@@ -79,32 +69,8 @@ func TestRun_ReturnsErrorWhenCommandIsMissing(t *testing.T) {
 	task := runner.Task{Prompt: "implement TEST-1", Dir: t.TempDir()}
 
 	_, err := runner.Run(t.Context(), profile, task)
-	if !errors.Is(err, exec.ErrNotFound) {
-		t.Errorf("Run() error = %v, want it to wrap exec.ErrNotFound", err)
-	}
-}
 
-func TestRun_CapturesStderrSeparatelyFromOutput(t *testing.T) {
-	// Workers print progress and warnings on stderr; the planner needs both
-	// streams, and the summary must only come from stdout.
-	profile := runner.Profile{
-		Name:    "sh",
-		Command: "sh",
-		Args:    []string{"-c", "echo done; echo warning >&2"},
-	}
-	task := runner.Task{Prompt: "implement TEST-1", Dir: t.TempDir()}
-
-	result, err := runner.Run(t.Context(), profile, task)
-	if err != nil {
-		t.Fatalf("Run() error = %v", err)
-	}
-
-	if got, want := result.Output, "done\n"; got != want {
-		t.Errorf("Output = %q, want %q", got, want)
-	}
-	if got, want := result.Stderr, "warning\n"; got != want {
-		t.Errorf("Stderr = %q, want %q", got, want)
-	}
+	assert.ErrorIs(t, err, exec.ErrNotFound)
 }
 
 func TestRun_StopsWorkerAfterProfileTimeout(t *testing.T) {
@@ -121,13 +87,7 @@ func TestRun_StopsWorkerAfterProfileTimeout(t *testing.T) {
 	result, err := runner.Run(t.Context(), profile, task)
 	elapsed := time.Since(start)
 
-	if err != nil {
-		t.Fatalf("Run() error = %v, want nil: a timeout is a Result, not an error", err)
-	}
-	if !result.TimedOut {
-		t.Error("TimedOut = false, want true")
-	}
-	if elapsed > 2*time.Second {
-		t.Errorf("Run() took %v, want the worker stopped near its 100ms timeout", elapsed)
-	}
+	require.NoError(t, err, "a timeout is a Result, not an error")
+	assert.True(t, result.TimedOut)
+	assert.Less(t, elapsed, 2*time.Second, "worker should stop near its 100ms timeout")
 }

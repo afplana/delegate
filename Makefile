@@ -3,7 +3,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
 test:            ## run all tests
-	gotestsum --format testname -- ./...
+	gotestsum --format testname -- -race ./...
 
 watch:           ## re-run tests on every save
 	gotestsum --watch --format testname -- ./...
@@ -26,6 +26,5 @@ secrets:         ## scan the whole git history for secrets
 
 check: test lint secrets  ## everything CI runs
 
-setup:           ## one-time: enable repo git hooks
-	chmod +x .githooks/*
-	git config core.hooksPath .githooks
+setup:           ## one-time: install pre-commit hooks (lint + secret scan)
+	pre-commit install

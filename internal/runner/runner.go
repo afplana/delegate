@@ -52,7 +52,7 @@ func Run(ctx context.Context, profile Profile, task Task) (Result, error) {
 		args = append(args, strings.ReplaceAll(arg, "{prompt}", task.Prompt))
 	}
 
-	cmd := exec.CommandContext(ctx, profile.Command, args...)
+	cmd := exec.CommandContext(ctx, profile.Command, args...) //nolint:gosec // G204: command comes from the user's own config
 	cmd.Dir = task.Dir
 
 	var stdout, stderr bytes.Buffer
@@ -66,9 +66,7 @@ func Run(ctx context.Context, profile Profile, task Task) (Result, error) {
 		return Result{ExitCode: -1, Output: output, TimedOut: true, Stderr: errOutput}, nil
 	}
 
-	var exitErr *exec.ExitError
-
-	if errors.As(err, &exitErr) {
+	if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 		return Result{ExitCode: exitErr.ExitCode(), Output: output, Stderr: errOutput}, nil
 	}
 
