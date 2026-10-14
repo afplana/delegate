@@ -1,4 +1,4 @@
-.PHONY: test watch lint fmt build install secrets check setup
+.PHONY: test watch lint fmt build install install-skill secrets check setup
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
@@ -20,6 +20,10 @@ build:           ## build ./bin/delegate
 
 install:         ## install delegate into $GOPATH/bin
 	go install -ldflags "-X main.version=$(VERSION)" ./cmd/delegate
+
+install-skill:   ## copy (never symlink) the Claude Code skill into ~/.claude/skills
+	mkdir -p $(HOME)/.claude/skills/delegate
+	cp skills/delegate/SKILL.md $(HOME)/.claude/skills/delegate/SKILL.md
 
 secrets:         ## scan the whole git history for secrets
 	gitleaks git --redact --verbose
