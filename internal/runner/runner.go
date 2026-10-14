@@ -8,8 +8,12 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 )
+
+// waitDelay is how long Run waits for output pipes after the worker is killed.
+const waitDelay = 2 * time.Second
 
 // Profile describes how to invoke one agent CLI.
 type Profile struct {
@@ -54,6 +58,12 @@ func Run(ctx context.Context, profile Profile, task Task) (Result, error) {
 
 	cmd := exec.CommandContext(ctx, profile.Command, args...) //nolint:gosec // G204: command comes from the user's own config
 	cmd.Dir = task.Dir
+	// Run the worker in its own process group and kill the whole group on
+	// timeout or cancel: agent CLIs spawn children that would otherwise keep
+	// running and keep stdout open. WaitDelay caps the wait for those pipes.
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }
+	cmd.WaitDelay = waitDelay
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

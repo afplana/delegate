@@ -161,4 +161,8 @@ non-empty in the source repo.
   `--force` runs any command; Claude's `acceptEdits` allows edits, but shell
   commands outside your Claude allow-list are denied.
 - No progress output while the worker runs; `delegate` is silent until it ends.
+- macOS and Linux only: on timeout or Ctrl-C the worker's whole process group
+  is killed (`syscall.Kill`), which does not compile on Windows.
+- `--in-place` marks new files intent-to-add in your repo's index (that is how
+  they show up in the diff). `git reset <file>` undoes it.
 - Worktrees and logs accumulate under `~/.local/state/delegate/` until card 13.

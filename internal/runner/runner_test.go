@@ -91,3 +91,24 @@ func TestRun_StopsWorkerAfterProfileTimeout(t *testing.T) {
 	assert.True(t, result.TimedOut)
 	assert.Less(t, elapsed, 2*time.Second, "worker should stop near its 100ms timeout")
 }
+
+func TestRun_TimeoutAlsoStopsWorkerChildProcesses(t *testing.T) {
+	// Agent CLIs spawn children. Killing only the parent leaves them running,
+	// still editing files and holding stdout open, so Run would wait for them.
+	profile := runner.Profile{
+		Name:    "spawns-child",
+		Command: "sh",
+		Args:    []string{"-c", "sleep 3; echo still running"},
+		Timeout: 100 * time.Millisecond,
+	}
+	task := runner.Task{Prompt: "implement TEST-1", Dir: t.TempDir()}
+
+	start := time.Now()
+	result, err := runner.Run(t.Context(), profile, task)
+	elapsed := time.Since(start)
+
+	require.NoError(t, err)
+	assert.True(t, result.TimedOut)
+	assert.Less(t, elapsed, 2*time.Second, "child processes should be stopped with the worker")
+	assert.NotContains(t, result.Output, "still running")
+}
