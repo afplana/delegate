@@ -24,19 +24,22 @@ Plan with Opus and code with Sonnet, plan with Opus and code with Cursor — sam
 | **Run** | One execution of a task with a profile. Has an ID, a log dir, and a result. |
 | **Result** | The compact JSON contract returned to the caller. |
 
-## CLI surface (target v1)
+## CLI surface
 
 ```
-delegate run --task plan.md [--profile cursor] [--repo .] [--in-place] [--timeout 30m]
-delegate profiles            # list configured profiles and whether their binary is on PATH
-delegate doctor              # check config + backends
-delegate skill install       # copy the Claude Code skill into ~/.claude/skills (copy, never symlink)
-delegate version
+delegate run --task plan.md [--profile cursor] [--repo .] [--in-place] [--timeout 30m]   # v1
+delegate version                                                                          # v1
+delegate profiles            # later: list profiles and whether their binary is on PATH
+delegate doctor              # later: check config + backends
+delegate skill install       # later: copy the Claude Code skill into ~/.claude/skills (copy, never symlink)
 ```
+
+Exit codes: 0 = status ok, 1 = any other status (JSON still printed), 2 = bad flags (usage on stderr).
 
 ## Config
 
-`~/.config/delegate/config.yaml`, optionally overridden by `<repo>/.delegate.yaml`.
+v1 ships the `cursor` and `claude-sonnet` profiles built in (`internal/config`).
+Later (roadmap card 11): `~/.config/delegate/config.yaml`, optionally overridden by `<repo>/.delegate.yaml`, merged over the built-ins.
 
 ```yaml
 default_profile: cursor
@@ -66,23 +69,29 @@ for prompts too large for argv.
 {
   "run_id": "20261013-142900-ab12",
   "profile": "cursor",
-  "status": "ok | failed | timeout",
+  "status": "ok | failed | timeout | error",
   "exit_code": 0,
   "duration_ms": 412000,
-  "worktree": "/path/to/worktree",
+  "workdir": "~/.local/state/delegate/worktrees/20261013-142900-ab12",
   "branch": "delegate/20261013-142900-ab12",
+  "base": "<commit the worker started from>",
   "files_changed": ["internal/x.go"],
   "diffstat": "3 files changed, 40 insertions(+), 2 deletions(-)",
   "summary": "worker's own summary, extracted from its output",
-  "log_dir": "~/.local/state/delegate/runs/20261013-142900-ab12"
+  "log_dir": "~/.local/state/delegate/runs/20261013-142900-ab12",
+  "error": "only when status is error"
 }
 ```
 
-The full stdout/stderr lives in `log_dir`. The caller reads it only when needed.
+Printed as one line. `log_dir` holds `prompt.md`, `stdout.log`, `stderr.log` and
+`result.json`. The caller reads them only when needed. `files_changed` and
+`diffstat` compare the workdir with `base`, so they include commits the worker made
+and new untracked files.
 
 ## Error model
 
 - `error` from `Run` = delegate could not do its job (binary missing, bad config, git failure).
+  The CLI reports it as `status: error` with an `error` message, so the caller always gets JSON.
 - A worker that runs and exits non-zero is **not** an error: it is a `Result` with `status: failed`.
 
 ## Isolation
@@ -95,9 +104,9 @@ By default each run gets its own git worktree on branch `delegate/<run-id>`.
 | Package | Responsibility | Test seam |
 |---|---|---|
 | `internal/runner` | Build the command from a profile, execute it, capture output and exit code | `runner.Run` against real processes (`echo`, `sh`) — no mocks |
-| `internal/config` | Load, merge and validate YAML config | `config.Load` with temp files |
-| `internal/workspace` | Create worktree, compute files changed and diffstat | Real temp git repos |
-| `cmd/delegate` | Flag parsing, wiring, JSON output | `run(args, stdout, stderr) int` — no binary build needed |
+| `internal/config` | Built-in profiles and lookup (YAML later) | `config.Lookup(config.Builtin(), name)` |
+| `internal/workspace` | Create worktree, compute files changed and diffstat | Real temp git repos (`internal/gittest`) |
+| `cmd/delegate` | Flag parsing, wiring, JSON output | `runCommands(ctx, args, stdout, stderr, profiles) int` with a fake `sh` worker — no binary build needed |
 
 ## Slices (TDD order)
 
@@ -105,9 +114,11 @@ By default each run gets its own git worktree on branch `delegate/<run-id>`.
 2. ✅ non-zero exit → `Result.ExitCode`, not an error; missing binary → error
 3. ✅ timeout via `context` → `Result.TimedOut` (mapped to `status: timeout` in slice 8)
 4. ✅ stderr captured (log dir moved to slice 8, where the run id exists)
-5. summary extraction (`<delegate-summary>` block, fallback: output tail)
-6. `config.Load` + profile lookup
-7. `workspace`: worktree + diffstat
-8. `cmd/delegate run` end-to-end with JSON output
-9. `profiles`, `doctor`, `skill install`
-10. Claude Code skill (`skills/delegate/SKILL.md`)
+5. ✅ summary extraction (`<delegate-summary>` block, fallback: last 20 lines)
+6. ✅ built-in profiles + lookup (YAML moved to after v1)
+7. ✅ `workspace`: worktree + diffstat
+8. ✅ `cmd/delegate run` end-to-end with JSON output, run id, log dir
+9. `profiles`, `doctor`, `skill install` (after v1)
+10. ✅ Claude Code skill (`skills/delegate/SKILL.md`)
+
+Remaining work, as pick-up cards: [roadmap.md](roadmap.md).
