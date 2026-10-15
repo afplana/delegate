@@ -38,15 +38,15 @@ Exit codes: 0 = status ok, 1 = any other status (JSON still printed), 2 = bad fl
 
 ## Config
 
-v1 ships the `claude-sonnet` (default) and `cursor` profiles built in (`internal/config`).
+v1 ships the `cursor` (default) and `claude-sonnet` profiles built in (`internal/config`).
 Later (roadmap card 11): `~/.config/delegate/config.yaml`, optionally overridden by `<repo>/.delegate.yaml`, merged over the built-ins.
 
 ```yaml
-default_profile: claude-sonnet
+default_profile: cursor
 profiles:
   cursor:
     command: cursor-agent
-    args: ["-p", "--force", "--trust", "--output-format", "text", "{prompt}"]
+    args: ["-p", "--trust", "--output-format", "text", "{prompt}"]
     timeout: 30m
   claude-sonnet:
     command: claude

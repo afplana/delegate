@@ -31,6 +31,15 @@ func TestLookup_FindsBuiltinProfiles(t *testing.T) {
 	}
 }
 
+func TestBuiltin_CursorRunsWithoutForce(t *testing.T) {
+	// Org-managed Cursor accounts can disable --force ("Run Everything");
+	// with it every cursor run fails within seconds.
+	profile, err := config.Lookup(config.Builtin(), "cursor")
+
+	require.NoError(t, err)
+	assert.NotContains(t, profile.Args, "--force")
+}
+
 func TestLookup_DefaultProfileExists(t *testing.T) {
 	_, err := config.Lookup(config.Builtin(), config.DefaultProfile)
 

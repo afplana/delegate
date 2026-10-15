@@ -12,9 +12,8 @@ import (
 	"github.com/afplana/delegate/internal/runner"
 )
 
-// DefaultProfile is used when the caller does not pass --profile. Not cursor:
-// org-managed Cursor accounts can disable --force, which that profile needs.
-const DefaultProfile = "claude-sonnet"
+// DefaultProfile is used when the caller does not pass --profile.
+const DefaultProfile = "cursor"
 
 const defaultTimeout = 30 * time.Minute
 
@@ -25,7 +24,9 @@ func Builtin() map[string]runner.Profile {
 		"cursor": {
 			Name:    "cursor",
 			Command: "cursor-agent",
-			Args:    []string{"-p", "--force", "--trust", "--output-format", "text", "{prompt}"},
+			// No --force: org-managed Cursor accounts can disable it ("Run Everything"),
+			// and print mode already allows file edits without it.
+			Args:    []string{"-p", "--trust", "--output-format", "text", "{prompt}"},
 			Timeout: defaultTimeout,
 		},
 		"claude-sonnet": {

@@ -26,7 +26,7 @@ Every card ends the same way: `make check` green, then a commit.
 | Per-profile timeout; `--timeout` override | ✅ v1 |
 | stdout and stderr captured separately and saved to a log dir | ✅ v1 |
 | Worker summary from `<delegate-summary>`, fallback to the last 20 lines | ✅ v1 |
-| Built-in profiles: `claude-sonnet` (default), `cursor` | ✅ v1 |
+| Built-in profiles: `cursor` (default), `claude-sonnet` | ✅ v1 |
 | Isolated git worktree per run on branch `delegate/<run-id>` | ✅ v1 |
 | `--in-place` mode, refused on `main`/`master` | ✅ v1 |
 | Files changed and diffstat, including new and committed files | ✅ v1 |
@@ -40,6 +40,7 @@ Every card ends the same way: `make check` green, then a commit.
 | Codex and Gemini profiles, verified | ⬜ card 14 |
 | Dirty-repo warning in the result | ⬜ card 15 |
 | Public release | ⬜ card 16 |
+| Recursion guard: a worker cannot start its own delegate run | ⬜ card 17 (Alain codes) |
 
 ## v1 slices (done)
 
@@ -156,14 +157,34 @@ non-empty in the source repo.
 - Tag `v0.1.0`; optionally add goreleaser for binaries.
 - Flip the repo to public.
 
+### 17 ⬜ Recursion guard (about 30 minutes) — Alain codes, Claude helps (mode 2)
+
+A worker is a full agent session (`claude -p` loads your user skills, including
+`delegate`), so a plan saying "delegate X" could make the worker start its own
+worker. Not seen so far (checked 2026-10-14), but cheap to prevent.
+
+Guard inside delegate itself, so it works for every CLI and stays role-agnostic:
+
+1. `runner.Run` passes `DELEGATE_RUN_ID=<run id>` to the worker
+   (`cmd.Env = append(os.Environ(), ...)`; add a `Task.Env` or `RunID` field).
+2. `delegate run` refuses to start when `DELEGATE_RUN_ID` is already set:
+   `status: error`, `error: "nested delegate run inside run <id>"`.
+
+- Files: `internal/runner/runner.go`, `cmd/delegate/run.go`, their tests.
+- Test seams: a profile `sh -c 'echo $DELEGATE_RUN_ID'` returns the id in `Output`;
+  `t.Setenv("DELEGATE_RUN_ID", "outer")` then `runCommands(... "run" ...)` returns status `error`.
+- Idioms: `os.Environ`, `cmd.Env`, `os.LookupEnv`, `t.Setenv`.
+- Optional second layer: block the skill in the `claude-sonnet` profile args.
+  Check `claude --help` for the exact disallowed-tools syntax first (UNVERIFIED).
+
 ## Known limitations (v1)
 
-- The worker runs with the permissions its CLI grants in print mode: Cursor's
-  `--force` runs any command; Claude's `acceptEdits` allows edits, but shell
-  commands outside your Claude allow-list are denied.
-- The `cursor` profile needs `--force`. Org-managed Cursor accounts can disable
-  it ("Run Everything"), and every run then fails within seconds. That is why
-  `claude-sonnet` is the default.
+- The worker runs with the permissions its CLI grants in print mode. Cursor
+  runs without `--force` (org-managed accounts can disable it): file edits
+  work, shell commands may not (a smoke test's `ls` returned no output), so
+  the worker may be unable to run tests. Claude's `acceptEdits` allows edits,
+  but shell commands outside your Claude allow-list are denied. Either way the
+  planner runs the tests during review.
 - No progress output while the worker runs; `delegate` is silent until it ends.
 - macOS and Linux only: on timeout or Ctrl-C the worker's whole process group
   is killed (`syscall.Kill`), which does not compile on Windows.
