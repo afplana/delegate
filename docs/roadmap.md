@@ -33,7 +33,8 @@ Every card ends the same way: `make check` green, then a commit.
 | One-line JSON result; `status` ok, failed, timeout or error | ✅ v1 |
 | Claude Code skill: plan → delegate → review → report, one round | ✅ v1 (in repo, not installed) |
 | `delegate profiles` | ✅ |
-| `delegate doctor`, `skill install` | ⬜ cards 9b–9c |
+| `delegate doctor` | ✅ |
+| `delegate skill install` | ⬜ card 9c |
 | YAML config merged over the built-ins | ⬜ card 11 |
 | Large prompts via stdin | ⬜ card 12 |
 | Clean up old worktrees and runs | ⬜ card 13 |
@@ -89,12 +90,12 @@ List the profiles and whether each binary is on `PATH`.
 - Test idea: a fake profile with `Command: "sh"` shows `found`; one with `Command: "no-such-bin"` shows `missing`.
 - Idioms: `exec.LookPath`, `text/tabwriter`, `slices.Sorted(maps.Keys(m))`.
 
-### 9b ⬜ `delegate doctor` (about 30 minutes)
+### 9b ✅ `delegate doctor` (about 30 minutes)
 
 Check that `git` is on `PATH`, the state dir is writable, and the default
 profile's binary exists. Print one line per check; exit 1 if any check fails.
 
-- Files: `cmd/delegate/doctor.go`
+- Files: `cmd/delegate/doctor.go`, `cmd/delegate/doctor_test.go`
 - Idioms: a slice of `struct{ name string; check func() error }`, `errors.Join`.
 
 ### 9c ⬜ `delegate skill install` (about 30 minutes)
