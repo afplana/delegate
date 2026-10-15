@@ -129,17 +129,25 @@ Then stop and wait. Do not pick an option for the user.
 
 ## 5. After the user decides
 
-- **Accept**: commit in the worktree, then bring it over. Show the commands first:
+- **Accept**: commit in the worktree (stage the `files_changed` paths, not
+  `-A`), then bring it over. Show the commands first:
   ```bash
-  git -C <workdir> add -A
+  git -C <workdir> add <files_changed...>
   git -C <workdir> commit -m "<message following the repo's convention>"
-  git -C <repo> cherry-pick <base>..<branch>
   ```
+  - If the user's branch is still at `base` (`git -C <repo> rev-parse HEAD`
+    equals `base`), fast-forward. The commit keeps its SHA:
+    `git -C <repo> merge --ff-only <branch>`
+  - Otherwise cherry-pick: `git -C <repo> cherry-pick <base>..<branch>`
 - **Cleanup** (deletes the worktree and its branch — confirm first):
   ```bash
   git -C <repo> worktree remove <workdir>
-  git -C <repo> branch -D <branch>
+  git -C <repo> branch -d <branch>
   ```
+  After a cherry-pick, `-d` refuses because the SHAs differ. Prove the work
+  landed with `git -C <repo> cherry -v HEAD <branch>`: every line starting
+  with `-` is already in. Only then use `-D`, or ask the user to run it if a
+  hook blocks force-deletes.
 - **Another round**: write a new plan containing only the findings to fix, and
   run `delegate run` again with `--repo <workdir> --in-place`, so it builds on
   the same branch.
