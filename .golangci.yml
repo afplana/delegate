@@ -1,5 +1,5 @@
-# Mirrors the linter set used in Lyft Go services, minus Lyft-internal
-# custom linters (idlclient, ambiguousliteral) that need Lyft's golangci fork.
+# Explicit linter set (default: none) so new golangci-lint releases never
+# change what CI enforces without a config change here.
 version: "2"
 linters:
   default: none
