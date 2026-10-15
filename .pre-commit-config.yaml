@@ -1,5 +1,5 @@
-# Same framework and lint hook as Lyft Go services, using the public upstream
-# repos instead of Lyft's private golangci-lint fork.
+# Runs the same checks as CI before each commit: the full golangci-lint run
+# and a gitleaks scan of the staged diff.
 repos:
 -   repo: https://github.com/golangci/golangci-lint
     rev: v2.14.0
