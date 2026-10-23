@@ -148,7 +148,7 @@ git worktree remove <workdir> && git branch -d <branch>
 | Profile | Command | Notes |
 |---|---|---|
 | `cursor` (default) | `cursor-agent -p --trust --output-format text {prompt}` | No `--force`, so it also works where an admin disabled "Run Everything". Shell commands may be restricted; the planner runs the tests. |
-| `claude-sonnet` | `claude -p --model sonnet --permission-mode acceptEdits {prompt}` | Edits are allowed; shell commands outside your Claude allow-list are denied. |
+| `claude-sonnet` | `claude -p --model sonnet --permission-mode acceptEdits --allowedTools <list> -- {prompt}` | Edits are allowed, plus `go`, `gofmt`, `make`, `golangci-lint`, `gotestsum`, `which` and `git add/commit/status/diff`. Anything else that would prompt is denied (`git push` included). Claude's "sensitive file" guard (e.g. `.pre-commit-config.yaml`) cannot be lifted by an allow rule: write those files yourself before delegating. |
 
 Both time out after 30 minutes by default. Custom profiles via a config file are
 on the [roadmap](docs/roadmap.md).

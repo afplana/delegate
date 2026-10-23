@@ -32,10 +32,35 @@ func Builtin() map[string]runner.Profile {
 		"claude-sonnet": {
 			Name:    "claude-sonnet",
 			Command: "claude",
-			Args:    []string{"-p", "--model", "sonnet", "--permission-mode", "acceptEdits", "{prompt}"},
+			Args:    claudeArgs("sonnet"),
 			Timeout: defaultTimeout,
 		},
 	}
+}
+
+// claudeAllowedTools are the shell commands a headless Claude worker may run.
+// acceptEdits only approves file edits, and print mode denies anything that
+// would prompt, so without this list the worker cannot build or test. Pushing
+// stays with the planner. Allow rules cannot lift Claude's "sensitive file"
+// denial (e.g. .pre-commit-config.yaml): the planner writes those files itself.
+var claudeAllowedTools = []string{
+	"Bash(go *)",
+	"Bash(gofmt *)",
+	"Bash(make *)",
+	"Bash(golangci-lint *)",
+	"Bash(gotestsum *)",
+	"Bash(git add *)",
+	"Bash(git commit *)",
+	"Bash(git status *)",
+	"Bash(git diff *)",
+	"Bash(which *)",
+}
+
+func claudeArgs(model string) []string {
+	args := []string{"-p", "--model", model, "--permission-mode", "acceptEdits", "--allowedTools"}
+	args = append(args, claudeAllowedTools...)
+	// --allowedTools is variadic: without "--" it would swallow the prompt.
+	return append(args, "--", "{prompt}")
 }
 
 // Lookup returns the profile called name, or an error naming the ones that exist.

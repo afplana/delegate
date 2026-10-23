@@ -184,8 +184,13 @@ Guard inside delegate itself, so it works for every CLI and stays role-agnostic:
   runs without `--force` (org-managed accounts can disable it): file edits
   work, shell commands may not (a smoke test's `ls` returned no output), so
   the worker may be unable to run tests. Claude's `acceptEdits` allows edits,
-  but shell commands outside your Claude allow-list are denied. Either way the
-  planner runs the tests during review.
+  and the profile allow-lists the Go build/test tools and local git commands
+  (`internal/config`); anything else that would prompt is denied, including
+  `git push` and commands behind an env-var prefix (`GOPROXY=... go get`).
+  Claude's "sensitive file" guard (e.g. `.pre-commit-config.yaml`) is not
+  lifted by an `Edit(path)` allow rule (checked 2026-10-23, Claude Code
+  2.1.295): the planner writes those files itself. Either way the planner
+  runs the tests during review.
 - No progress output while the worker runs; `delegate` is silent until it ends.
 - macOS and Linux only: on timeout or Ctrl-C the worker's whole process group
   is killed (`syscall.Kill`), which does not compile on Windows.
