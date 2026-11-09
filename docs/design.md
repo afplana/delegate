@@ -27,7 +27,7 @@ Plan with Opus and code with Sonnet, plan with Opus and code with Cursor — sam
 ## CLI surface
 
 ```
-delegate run --task plan.md [--profile claude-sonnet] [--repo .] [--in-place] [--timeout 30m]   # v1
+delegate run --task plan.md [--profile claude-sonnet] [--repo .] [--in-place] [--timeout 30m] [--verify <cmd>]...   # v1
 delegate version                                                                          # v1
 delegate profiles                                                                         # v1: list profiles and whether their binary is on PATH
 delegate doctor                                                                           # v1: check git, state dir and the default profile's binary
@@ -81,6 +81,7 @@ for prompts too large for argv.
   "files_changed": ["internal/x.go"],
   "diffstat": "3 files changed, 40 insertions(+), 2 deletions(-)",
   "summary": "worker's own summary, extracted from its output",
+  "verify": [{"cmd": "go test ./...", "exit": 0, "timed_out": false, "tail": "last 30 lines"}],
   "log_dir": "~/.local/state/delegate/runs/20261013-142900-ab12",
   "error": "only when status is error"
 }
@@ -90,6 +91,11 @@ Printed as one line. `log_dir` holds `prompt.md`, `stdout.log`, `stderr.log` and
 `result.json`. The caller reads them only when needed. `files_changed` and
 `diffstat` compare the workdir with `base`, so they include commits the worker made
 and new untracked files.
+
+`verify` appears only with `--verify`: one entry per command, run with `sh -c` in
+the workdir after the worker, in order, all of them even after a failure, with
+the worker's timeout. `timed_out` is omitted when false. It never changes
+`status`, which stays the worker's outcome. Full output: `verify-<n>.log`.
 
 ## Error model
 

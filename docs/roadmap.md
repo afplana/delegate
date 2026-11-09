@@ -42,7 +42,7 @@ Every card ends the same way: `make check` green, then a commit.
 | Dirty-repo warning in the result | ⬜ card 15 |
 | Public release | ⬜ card 16 |
 | Recursion guard: a worker cannot start its own delegate run | ⬜ card 17 (Alain codes) |
-| `--verify`: delegate runs the acceptance commands itself | ⬜ card 18 |
+| `--verify`: delegate runs the acceptance commands itself | ✅ card 18 |
 | File allowlist in the plan; `out_of_scope` in the result | ⬜ card 19 |
 | Plan check: refuse a plan without Goal, Steps, Acceptance criteria | ⬜ card 20 |
 | Cost, tokens and review verdict recorded per run | ⬜ card 21 |
@@ -201,7 +201,7 @@ spots: in 2 runs the worker's output never mentions a test command, one run
 touched 18 files, and nothing records cost or how the review went. Highest
 payoff first.
 
-### 18 ⬜ `--verify "<cmd>"` (about 45 minutes)
+### 18 ✅ `--verify "<cmd>"` (about 45 minutes)
 
 Run the acceptance commands **after** the worker exits, in the workdir, and put
 the outcome in the result: `"verify": {"cmd": "...", "exit": 0, "tail": "..."}`

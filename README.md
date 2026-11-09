@@ -88,7 +88,7 @@ It does **one round only**. There is no automatic fix loop; you pick the option.
 ## Use it directly
 
 ```bash
-delegate run --task plan.md --repo . [--profile cursor|claude-sonnet|claude-haiku] [--timeout 30m] [--in-place]
+delegate run --task plan.md --repo . [--profile cursor|claude-sonnet|claude-haiku] [--timeout 30m] [--in-place] [--verify "go test ./..." ...]
 ```
 
 Output (one line, pretty-printed here):
@@ -106,6 +106,7 @@ Output (one line, pretty-printed here):
   "files_changed": ["cmd/delegate/version_test.go"],
   "diffstat": "1 file changed, 18 insertions(+)",
   "summary": "Added version_test.go only … acceptance criteria met.",
+  "verify": [{"cmd": "go test ./...", "exit": 0, "tail": "ok  …/cmd/delegate 1.2s"}],
   "log_dir": "~/.local/state/delegate/runs/20261015-085020-f97f"
 }
 ```
@@ -122,6 +123,13 @@ Bad flags print usage to stderr and exit 2. Full output lives in `log_dir`:
 
 The worker is told to end with a `<delegate-summary>` block; that becomes
 `summary`. If it does not, `summary` is the last 20 lines of its output.
+
+`--verify "<cmd>"` (repeatable) runs a shell command in the workdir after the
+worker exits, with the same timeout. Each one lands in `verify` with its exit
+code and the last 30 lines of combined output (full output in
+`verify-<n>.log`). Every command runs even if an earlier one fails. `status`
+stays the worker's: a red check does not change it or delegate's exit code, so
+read `verify` yourself. Without `--verify` the field is left out.
 
 ### Accepting the work
 

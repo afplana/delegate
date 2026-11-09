@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/afplana/delegate/internal/config"
@@ -21,25 +22,46 @@ import (
 // result is the JSON contract printed on stdout. Keep it small: the caller is
 // usually a model paying for every token. Full output lives in LogDir.
 type result struct {
-	RunID        string   `json:"run_id"`
-	Profile      string   `json:"profile"`
-	Status       string   `json:"status"` // ok | failed | timeout | error
-	ExitCode     int      `json:"exit_code"`
-	DurationMS   int64    `json:"duration_ms"`
-	Workdir      string   `json:"workdir,omitempty"`
-	Branch       string   `json:"branch,omitempty"`
-	Base         string   `json:"base,omitempty"`
-	FilesChanged []string `json:"files_changed"`
-	Diffstat     string   `json:"diffstat"`
-	Summary      string   `json:"summary"`
-	LogDir       string   `json:"log_dir,omitempty"`
-	Error        string   `json:"error,omitempty"`
+	RunID        string         `json:"run_id"`
+	Profile      string         `json:"profile"`
+	Status       string         `json:"status"` // ok | failed | timeout | error
+	ExitCode     int            `json:"exit_code"`
+	DurationMS   int64          `json:"duration_ms"`
+	Workdir      string         `json:"workdir,omitempty"`
+	Branch       string         `json:"branch,omitempty"`
+	Base         string         `json:"base,omitempty"`
+	FilesChanged []string       `json:"files_changed"`
+	Diffstat     string         `json:"diffstat"`
+	Summary      string         `json:"summary"`
+	Verify       []verifyResult `json:"verify,omitempty"`
+	LogDir       string         `json:"log_dir,omitempty"`
+	Error        string         `json:"error,omitempty"`
+}
+
+// verifyResult is one --verify command's outcome. Full output is in
+// verify-<n>.log next to the other logs.
+type verifyResult struct {
+	Cmd      string `json:"cmd"`
+	Exit     int    `json:"exit"`
+	TimedOut bool   `json:"timed_out,omitempty"`
+	Tail     string `json:"tail"`
 }
 
 type runFlags struct {
 	task, profile, repo string
 	inPlace             bool
 	timeout             time.Duration
+	verify              stringList
+}
+
+// stringList is a flag that can be passed more than once.
+type stringList []string
+
+func (l *stringList) String() string { return strings.Join(*l, ", ") }
+
+func (l *stringList) Set(v string) error {
+	*l = append(*l, v)
+	return nil
 }
 
 // runTask implements `delegate run`. Flag mistakes print usage and return 2.
@@ -53,6 +75,7 @@ func runTask(ctx context.Context, args []string, stdout, stderr io.Writer, profi
 	fs.StringVar(&f.repo, "repo", ".", "git repository to work on")
 	fs.BoolVar(&f.inPlace, "in-place", false, "work in --repo itself instead of a new worktree (refused on main/master)")
 	fs.DurationVar(&f.timeout, "timeout", 0, "stop the worker after this long (default: the profile's)")
+	fs.Var(&f.verify, "verify", "shell command to run in the workdir after the worker, e.g. \"go test ./...\" (repeatable; same timeout as the worker)")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
@@ -144,6 +167,17 @@ func execute(ctx context.Context, f runFlags, profiles map[string]runner.Profile
 		res.FilesChanged = changes.Files
 	}
 	res.Diffstat = changes.Diffstat
+
+	checks := runner.Verify(ctx, ws.Dir, f.verify, profile.Timeout)
+	logs := make(map[string]string, len(checks))
+	for i, c := range checks {
+		res.Verify = append(res.Verify, verifyResult{Cmd: c.Cmd, Exit: c.Exit, TimedOut: c.TimedOut, Tail: c.Tail})
+		logs[fmt.Sprintf("verify-%d.log", i+1)] = c.Output
+	}
+	if err := writeLogs(logDir, logs); err != nil {
+		return fail(err)
+	}
+
 	res.ExitCode = out.ExitCode
 	res.Summary = runner.ExtractSummary(out.Output)
 	res.Status = status(out)

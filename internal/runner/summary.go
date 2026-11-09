@@ -23,13 +23,18 @@ const SummaryInstruction = "\n\nWhen you are done, end your reply with a short r
 func ExtractSummary(output string) string {
 	_, rest, found := strings.Cut(output, summaryOpenTag)
 	if !found {
-		lines := strings.Split(strings.TrimSpace(output), "\n")
-		if len(lines) > summaryTailLines {
-			lines = lines[len(lines)-summaryTailLines:]
-		}
-		return strings.Join(lines, "\n")
+		return lastLines(output, summaryTailLines)
 	}
 
 	inside, _, _ := strings.Cut(rest, summaryCloseTag)
 	return strings.TrimSpace(inside)
+}
+
+// lastLines returns the last n lines of s, trimmed of surrounding whitespace.
+func lastLines(s string, n int) string {
+	lines := strings.Split(strings.TrimSpace(s), "\n")
+	if len(lines) > n {
+		lines = lines[len(lines)-n:]
+	}
+	return strings.Join(lines, "\n")
 }
