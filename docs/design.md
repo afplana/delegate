@@ -38,7 +38,7 @@ Exit codes: 0 = status ok, 1 = any other status (JSON still printed), 2 = bad fl
 
 ## Config
 
-v1 ships the `cursor` (default) and `claude-sonnet` profiles built in (`internal/config`).
+v1 ships the `cursor` (default), `claude-sonnet` and `claude-haiku` profiles built in (`internal/config`).
 Later (roadmap card 11): `~/.config/delegate/config.yaml`, optionally overridden by `<repo>/.delegate.yaml`, merged over the built-ins.
 
 ```yaml

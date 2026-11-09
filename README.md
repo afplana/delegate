@@ -88,7 +88,7 @@ It does **one round only**. There is no automatic fix loop; you pick the option.
 ## Use it directly
 
 ```bash
-delegate run --task plan.md --repo . [--profile cursor|claude-sonnet] [--timeout 30m] [--in-place]
+delegate run --task plan.md --repo . [--profile cursor|claude-sonnet|claude-haiku] [--timeout 30m] [--in-place]
 ```
 
 Output (one line, pretty-printed here):
@@ -149,8 +149,9 @@ git worktree remove <workdir> && git branch -d <branch>
 |---|---|---|
 | `cursor` (default) | `cursor-agent -p --trust --output-format text {prompt}` | No `--force`, so it also works where an admin disabled "Run Everything". Shell commands may be restricted; the planner runs the tests. |
 | `claude-sonnet` | `claude -p --model sonnet --permission-mode acceptEdits --allowedTools <list> -- {prompt}` | Edits are allowed, plus `go`, `gofmt`, `make`, `golangci-lint`, `gotestsum`, `which` and `git add/commit/status/diff`. Anything else that would prompt is denied (`git push` included). Claude's "sensitive file" guard (e.g. `.pre-commit-config.yaml`) cannot be lifted by an allow rule: write those files yourself before delegating. |
+| `claude-haiku` | `claude -p --model haiku ...` (same args as `claude-sonnet`) | Same permissions as `claude-sonnet`. For fully specified, mechanical work: renames, sweeps, exact edits. |
 
-Both time out after 30 minutes by default. Custom profiles via a config file are
+All three time out after 30 minutes by default. Custom profiles via a config file are
 on the [roadmap](docs/roadmap.md).
 
 ## Limitations
