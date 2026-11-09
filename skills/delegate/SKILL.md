@@ -54,13 +54,18 @@ One or two sentences: the behaviour that must exist when done.
 - Exact commands that must pass, e.g. `go test -race ./...`, `make lint`.
 - Observable behaviour, e.g. "`Foo("")` returns ErrEmpty".
 
+# Files
+- `path/to/file.go`, `path/to/dir/**`, `path/*_test.go` — everything the
+  worker may change. delegate lists any other changed file in `out_of_scope`.
+
 # Constraints
 - Do not commit. Do not push. Do not add dependencies unless listed here.
 - Do not touch: <files or areas out of scope>.
 ```
 
 `Goal`, `Steps` and `Acceptance criteria` are required and must not be empty:
-`delegate run` refuses the plan otherwise. The other sections are optional.
+`delegate run` refuses the plan otherwise. The other sections are optional, but
+always fill `# Files` when you know the scope.
 
 Keep it as short as it can be while staying unambiguous. Ambiguity is the main
 reason workers drift. Do not add the summary-block instruction: `delegate`
@@ -90,6 +95,7 @@ Wait for the completion notification, then read the single JSON line:
 | `status` | `ok` / `failed` (non-zero exit) / `timeout` / `error` (delegate itself failed — see `error`) |
 | `workdir`, `branch`, `base` | where the work is, and the commit it started from |
 | `files_changed`, `diffstat` | scope check before reading any code |
+| `out_of_scope` | changed files outside the plan's `# Files`; review these first. Absent when everything is in scope or the plan had no `# Files` |
 | `summary` | the worker's own report (or the last 20 lines if it skipped the block) |
 | `verify` | per `--verify` command: `exit` and the last 30 lines in `tail` (full output in `verify-<n>.log`). Independent of `status` |
 | `log_dir` | `prompt.md`, `stdout.log`, `stderr.log`, `result.json` — read only when needed |

@@ -96,6 +96,11 @@ sections (any heading level, any case; headings inside code fences don't
 count). Otherwise delegate refuses before creating a worktree:
 `status: error`, `error: "plan missing sections: Steps, Acceptance criteria"`.
 
+An optional `# Files` section lists what the worker may change, one entry per
+line (`- ` and backticks are fine): an exact path, `dir/` or `dir/**` for a
+whole directory, or a one-segment glob like `internal/*_test.go`. Changed files
+matching none of them land in `out_of_scope`. No `# Files` section, no check.
+
 Output (one line, pretty-printed here):
 
 ```json

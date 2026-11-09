@@ -120,6 +120,23 @@ func TestRun_WithoutVerifyLeavesTheFieldOut(t *testing.T) {
 	assert.NotContains(t, string(line), `"verify"`)
 }
 
+func TestRun_ListsChangedFilesOutsideThePlansFiles(t *testing.T) {
+	// Drift shows up in one JSON field instead of a full diff review.
+	planText := validPlan + "\n# Files\n- `new.txt`\n"
+
+	code, res := runDelegateWithPlan(t, fakeWorker("touch new.txt extra.txt"), planText)
+
+	assert.Equal(t, 0, code, "out-of-scope files do not change the worker's status")
+	assert.Equal(t, []string{"extra.txt"}, res.OutOfScope)
+}
+
+func TestRun_WithoutFilesSectionSkipsTheScopeCheck(t *testing.T) {
+	code, res := runDelegate(t, fakeWorker("touch new.txt extra.txt"))
+
+	assert.Equal(t, 0, code)
+	assert.Nil(t, res.OutOfScope)
+}
+
 func TestRun_RefusesAPlanWithoutRequiredSections(t *testing.T) {
 	// The worker must never start on a plan with no way to tell when it is done.
 	code, res := runDelegateWithPlan(t, fakeWorker("touch started.txt"), "# Goal\nCreate new.txt\n")
