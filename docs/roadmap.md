@@ -44,7 +44,7 @@ Every card ends the same way: `make check` green, then a commit.
 | Recursion guard: a worker cannot start its own delegate run | ⬜ card 17 (Alain codes) |
 | `--verify`: delegate runs the acceptance commands itself | ✅ card 18 |
 | File allowlist in the plan; `out_of_scope` in the result | ⬜ card 19 |
-| Plan check: refuse a plan without Goal, Steps, Acceptance criteria | ⬜ card 20 |
+| Plan check: refuse a plan without Goal, Steps, Acceptance criteria | ✅ card 20 |
 | Cost, tokens and review verdict recorded per run | ⬜ card 21 |
 | `claude-haiku` profile | ✅ card 22 |
 | Skill: plans give paths and line ranges, not pasted code | ⬜ card 23 |
@@ -227,19 +227,22 @@ every entry of `files_changed` that matches none of them goes into
 `"out_of_scope": [...]`. Catches the most common drift (the 18-file run) without
 reading code. No `# Files` section means no check, so old plans still work.
 
-- Files: `internal/plan/plan.go` (parse sections), `cmd/delegate/run.go`, tests.
-- Seam: `plan.Parse(md string) (Plan, error)` and `OutOfScope(changed, allowed []string) []string`.
+- Files: `internal/plan/plan.go`, `cmd/delegate/run.go`, tests.
+- Parser already exists (built with card 20): `plan.Parse(md).Section("Files")`
+  returns the body. Add `OutOfScope(changed, allowed []string) []string`.
 - Cases: exact path, `internal/**` glob, a file outside both, empty section.
 - Idioms: `bufio.Scanner`, `strings.HasPrefix` for headings,
   `path.Match` (note: no `**`; handle a trailing `/**` as a prefix match yourself).
 
-### 20 ⬜ Plan check before the worker starts (about 30 minutes)
+### 20 ✅ Plan check before the worker starts (about 30 minutes)
 
 `delegate run` refuses a plan missing a `# Goal`, `# Steps` or
 `# Acceptance criteria` heading: `status: error`,
 `error: "plan missing sections: Steps, Acceptance criteria"`. The skill names
 ambiguity as the main cause of drift; this makes it impossible to hand over a
-plan without acceptance criteria. Reuses card 19's parser, so do 19 first.
+plan without acceptance criteria. Built before card 19, so it added the
+parser (`plan.Parse`, `Section`, `Missing`); `Parse` returns no error because
+parsing markdown can't fail.
 
 - Files: `internal/plan/plan.go`, `cmd/delegate/run.go`, tests.
 - Seam: `Plan.Missing() []string`.
