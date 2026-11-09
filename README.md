@@ -107,6 +107,8 @@ Output (one line, pretty-printed here):
 {
   "run_id": "20261015-085020-f97f",
   "profile": "cursor",
+  "repo": "~/src/delegate",
+  "started_at": "2026-10-15T08:50:20Z",
   "status": "ok",
   "exit_code": 0,
   "duration_ms": 68134,

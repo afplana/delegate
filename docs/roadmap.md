@@ -47,8 +47,8 @@ Every card ends the same way: `make check` green, then a commit.
 | Plan check: refuse a plan without Goal, Steps, Acceptance criteria | ✅ card 20 |
 | Cost, tokens and review verdict recorded per run | ⬜ card 21 |
 | `claude-haiku` profile | ✅ card 22 |
-| Skill: plans give paths and line ranges, not pasted code | ⬜ card 23 |
-| `repo` and `started_at` in `result.json` | ⬜ card 24 |
+| Skill: plans give paths and line ranges, not pasted code | ✅ card 23 |
+| `repo` and `started_at` in `result.json` | ✅ card 24 |
 | Worker isolated from the user's Claude setup | ⬜ card 25 |
 | `needs_input` status when the worker hits an ambiguity | ⬜ card 26 |
 
@@ -280,7 +280,7 @@ renames, mechanical sweeps, fully specified edits.
 
 - Test: `Lookup("claude-haiku")` returns `--model haiku`.
 
-### 23 ⬜ Skill: paths and line ranges, not pasted code (about 15 minutes)
+### 23 ✅ Skill: paths and line ranges, not pasted code (about 15 minutes)
 
 `skills/delegate/SKILL.md` § Plan asks the planner to paste "the 5–20 lines
 that matter" from each file. The worker can read files itself, so the planner
@@ -290,7 +290,7 @@ worker must **not** read past (e.g. one function in a huge file).
 
 - Files: `skills/delegate/SKILL.md`. Then reinstall the skill (card 9c).
 
-### 24 ⬜ `repo` and `started_at` in `result.json` (about 15 minutes)
+### 24 ✅ `repo` and `started_at` in `result.json` (about 15 minutes)
 
 Today a past run can't be traced back to its repo or start time
 (`result.json` has `duration_ms` but no timestamp or source repo). Add

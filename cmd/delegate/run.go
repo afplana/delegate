@@ -25,7 +25,9 @@ import (
 type result struct {
 	RunID        string         `json:"run_id"`
 	Profile      string         `json:"profile"`
-	Status       string         `json:"status"` // ok | failed | timeout | error
+	Repo         string         `json:"repo"`       // absolute path of --repo
+	StartedAt    string         `json:"started_at"` // RFC 3339, UTC
+	Status       string         `json:"status"`     // ok | failed | timeout | error
 	ExitCode     int            `json:"exit_code"`
 	DurationMS   int64          `json:"duration_ms"`
 	Workdir      string         `json:"workdir,omitempty"`
@@ -108,7 +110,13 @@ func runTask(ctx context.Context, args []string, stdout, stderr io.Writer, profi
 // execute does one run. Failures of delegate itself become status "error".
 func execute(ctx context.Context, f runFlags, profiles map[string]runner.Profile) result {
 	start := time.Now()
-	res := result{RunID: newRunID(start), Profile: f.profile, FilesChanged: []string{}}
+	res := result{
+		RunID:        newRunID(start),
+		Profile:      f.profile,
+		Repo:         absPath(f.repo),
+		StartedAt:    start.UTC().Format(time.RFC3339),
+		FilesChanged: []string{},
+	}
 	fail := func(err error) result {
 		res.Status = "error"
 		res.Error = err.Error()
@@ -208,6 +216,15 @@ func newRunID(now time.Time) string {
 	suffix := make([]byte, 2)
 	_, _ = rand.Read(suffix) // crypto/rand.Read never returns an error
 	return now.UTC().Format("20060102-150405") + "-" + hex.EncodeToString(suffix)
+}
+
+// absPath makes a past result traceable to its repo. If the path cannot be
+// resolved, the flag value as given still beats an empty field.
+func absPath(p string) string {
+	if abs, err := filepath.Abs(p); err == nil {
+		return abs
+	}
+	return p
 }
 
 // stateDir follows the XDG base directory spec: $XDG_STATE_HOME/delegate,
