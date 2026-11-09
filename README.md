@@ -91,6 +91,11 @@ It does **one round only**. There is no automatic fix loop; you pick the option.
 delegate run --task plan.md --repo . [--profile cursor|claude-sonnet|claude-haiku] [--timeout 30m] [--in-place] [--verify "go test ./..." ...]
 ```
 
+The plan must have non-empty `# Goal`, `# Steps` and `# Acceptance criteria`
+sections (any heading level, any case; headings inside code fences don't
+count). Otherwise delegate refuses before creating a worktree:
+`status: error`, `error: "plan missing sections: Steps, Acceptance criteria"`.
+
 Output (one line, pretty-printed here):
 
 ```json

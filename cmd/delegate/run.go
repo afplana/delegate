@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/afplana/delegate/internal/config"
+	"github.com/afplana/delegate/internal/plan"
 	"github.com/afplana/delegate/internal/runner"
 	"github.com/afplana/delegate/internal/workspace"
 )
@@ -121,9 +122,12 @@ func execute(ctx context.Context, f runFlags, profiles map[string]runner.Profile
 	if f.timeout > 0 {
 		profile.Timeout = f.timeout
 	}
-	plan, err := os.ReadFile(f.task)
+	planText, err := os.ReadFile(f.task)
 	if err != nil {
 		return fail(fmt.Errorf("read task: %w", err))
+	}
+	if missing := plan.Parse(string(planText)).Missing(); len(missing) > 0 {
+		return fail(fmt.Errorf("plan missing sections: %s", strings.Join(missing, ", ")))
 	}
 
 	state, err := stateDir()
@@ -147,7 +151,7 @@ func execute(ctx context.Context, f runFlags, profiles map[string]runner.Profile
 	}
 	res.Workdir, res.Branch, res.Base = ws.Dir, ws.Branch, ws.Base
 
-	prompt := string(plan) + runner.SummaryInstruction
+	prompt := string(planText) + runner.SummaryInstruction
 	if err := writeLogs(logDir, map[string]string{"prompt.md": prompt}); err != nil {
 		return fail(err)
 	}

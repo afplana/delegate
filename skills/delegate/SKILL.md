@@ -59,6 +59,9 @@ One or two sentences: the behaviour that must exist when done.
 - Do not touch: <files or areas out of scope>.
 ```
 
+`Goal`, `Steps` and `Acceptance criteria` are required and must not be empty:
+`delegate run` refuses the plan otherwise. The other sections are optional.
+
 Keep it as short as it can be while staying unambiguous. Ambiguity is the main
 reason workers drift. Do not add the summary-block instruction: `delegate`
 appends it.
@@ -92,6 +95,8 @@ Wait for the completion notification, then read the single JSON line:
 | `log_dir` | `prompt.md`, `stdout.log`, `stderr.log`, `result.json` — read only when needed |
 
 - `error`: report the `error` text and stop. Nothing ran or nothing was diffed.
+  Exception: `plan missing sections: ...` is your own plan's fault. Add the
+  sections and run again without asking.
 - `timeout` or `failed`: still review — partial work may be useful. Read the
   tail of `stderr.log` before guessing why.
 

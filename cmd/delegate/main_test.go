@@ -23,13 +23,21 @@ func fakeWorker(script string) map[string]runner.Profile {
 	}
 }
 
-// runDelegate runs `delegate run` in a fresh repo with a task file and decodes the JSON it prints.
+// validPlan has every section delegate requires before starting a worker.
+const validPlan = "# Goal\nCreate new.txt\n\n# Steps\n1. Create it.\n\n# Acceptance criteria\n- new.txt exists.\n"
+
+// runDelegate runs `delegate run` in a fresh repo with a valid plan and decodes the JSON it prints.
 func runDelegate(t *testing.T, profiles map[string]runner.Profile, extraArgs ...string) (int, result) {
+	t.Helper()
+	return runDelegateWithPlan(t, profiles, validPlan, extraArgs...)
+}
+
+func runDelegateWithPlan(t *testing.T, profiles map[string]runner.Profile, planText string, extraArgs ...string) (int, result) {
 	t.Helper()
 	t.Setenv("XDG_STATE_HOME", t.TempDir())
 	repo := gittest.InitRepo(t)
 	task := filepath.Join(t.TempDir(), "plan.md")
-	require.NoError(t, os.WriteFile(task, []byte("Create new.txt"), 0o600))
+	require.NoError(t, os.WriteFile(task, []byte(planText), 0o600))
 
 	var stdout, stderr bytes.Buffer
 	args := append([]string{"run", "--task", task, "--repo", repo, "--profile", "fake"}, extraArgs...)
@@ -110,6 +118,16 @@ func TestRun_WithoutVerifyLeavesTheFieldOut(t *testing.T) {
 	line, err := os.ReadFile(filepath.Join(res.LogDir, "result.json"))
 	require.NoError(t, err)
 	assert.NotContains(t, string(line), `"verify"`)
+}
+
+func TestRun_RefusesAPlanWithoutRequiredSections(t *testing.T) {
+	// The worker must never start on a plan with no way to tell when it is done.
+	code, res := runDelegateWithPlan(t, fakeWorker("touch started.txt"), "# Goal\nCreate new.txt\n")
+
+	assert.Equal(t, 1, code)
+	assert.Equal(t, "error", res.Status)
+	assert.Equal(t, "plan missing sections: Steps, Acceptance criteria", res.Error)
+	assert.Empty(t, res.Workdir, "no worktree is created for a refused plan")
 }
 
 func TestRun_ReportsDelegateFailuresAsJSON(t *testing.T) {

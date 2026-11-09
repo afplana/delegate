@@ -102,6 +102,9 @@ the worker's timeout. `timed_out` is omitted when false. It never changes
 - `error` from `Run` = delegate could not do its job (binary missing, bad config, git failure).
   The CLI reports it as `status: error` with an `error` message, so the caller always gets JSON.
 - A worker that runs and exits non-zero is **not** an error: it is a `Result` with `status: failed`.
+- A plan without non-empty `Goal`, `Steps` and `Acceptance criteria` sections is refused
+  before any worktree exists: `status: error`, `error: "plan missing sections: ..."`
+  (`internal/plan`).
 
 ## Isolation
 
