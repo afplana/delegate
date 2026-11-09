@@ -53,3 +53,31 @@ func TestLookup_UnknownProfileListsKnownNames(t *testing.T) {
 	assert.ErrorContains(t, err, `unknown profile "nope"`)
 	assert.ErrorContains(t, err, "claude-sonnet, cursor")
 }
+
+func TestBuiltin_ClaudeSonnetCanBuildAndCommitButNotPush(t *testing.T) {
+	// Print mode denies every shell command not allow-listed, so without
+	// these the worker cannot run go, make or git and stops in its first task.
+	profile, err := config.Lookup(config.Builtin(), "claude-sonnet")
+
+	require.NoError(t, err)
+	assert.Contains(t, profile.Args, "acceptEdits")
+	assert.Contains(t, profile.Args, "--allowedTools")
+	for _, tool := range []string{"Bash(go *)", "Bash(make *)", "Bash(git add *)", "Bash(git commit *)"} {
+		assert.Contains(t, profile.Args, tool)
+	}
+	for _, arg := range profile.Args {
+		assert.NotContains(t, arg, "push", "pushing stays with the planner")
+		assert.NotContains(t, arg, "bypassPermissions")
+		assert.NotContains(t, arg, "dangerously")
+	}
+}
+
+func TestBuiltin_ClaudeSonnetEndsOptionsBeforePrompt(t *testing.T) {
+	// --allowedTools is variadic; without "--" it takes the prompt as a tool
+	// name and claude exits with "Input must be provided".
+	profile, err := config.Lookup(config.Builtin(), "claude-sonnet")
+
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(profile.Args), 2)
+	assert.Equal(t, []string{"--", "{prompt}"}, profile.Args[len(profile.Args)-2:])
+}

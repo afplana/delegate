@@ -50,7 +50,10 @@ profiles:
     timeout: 30m
   claude-sonnet:
     command: claude
-    args: ["-p", "--model", "sonnet", "--permission-mode", "acceptEdits", "{prompt}"]
+    # --allowedTools is variadic, so "--" keeps it from swallowing the prompt
+    args: ["-p", "--model", "sonnet", "--permission-mode", "acceptEdits",
+           "--allowedTools", "Bash(go *)", "Bash(make *)", "Bash(git commit *)", "...",
+           "--", "{prompt}"]
     timeout: 30m
   codex:            # untested in v1
     command: codex
