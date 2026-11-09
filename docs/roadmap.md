@@ -49,6 +49,8 @@ Every card ends the same way: `make check` green, then a commit.
 | `claude-haiku` profile | ⬜ card 22 |
 | Skill: plans give paths and line ranges, not pasted code | ⬜ card 23 |
 | `repo` and `started_at` in `result.json` | ⬜ card 24 |
+| Worker isolated from the user's Claude setup | ⬜ card 25 |
+| `needs_input` status when the worker hits an ambiguity | ⬜ card 26 |
 
 ## v1 slices (done)
 
@@ -293,6 +295,51 @@ Today a past run can't be traced back to its repo or start time
 
 - Files: `cmd/delegate/run.go`, `run_test.go`.
 - Idioms: `time.Now().UTC().Format(time.RFC3339)`, `filepath.Abs`.
+
+## Worker contract cards (from the 2026-10-19 multi-agent review)
+
+Merged in from the unmerged `docs/roadmap-multi-agent-cards` branch (`fcba3bb`).
+Its `--verify`, cost and `claude-haiku` cards are covered by 18, 21 and 22.
+
+### 25 ⬜ Isolate the worker from the user's setup (about 20 minutes)
+
+The `claude-sonnet` worker loads the user's whole personal setup. Probe on
+2026-10-19 (Haiku answering yes/no about its own context, run from this repo):
+
+| Args | user CLAUDE.md | learning output style | MCP tools | wall time |
+|---|---|---|---|---|
+| current profile args | yes | yes | yes | 12.6 s |
+| `+ --setting-sources project --strict-mcp-config` | yes | no | no | 6.9 s |
+
+A learning output style can make the worker leave `TODO(human)` gaps; a user
+rule like "ask which pairing mode" can make it stop and ask. Fix:
+
+1. Add `--setting-sources project --strict-mcp-config` in `claudeArgs`
+   (`internal/config/config.go`, after PR #7), before the `--` separator.
+2. Add `--append-system-prompt` with a short worker contract: you are a
+   delegate worker, do not ask questions mid-task (use card 26), do not write
+   outside the worktree.
+3. User CLAUDE.md still loads. Pair with card 17: once `DELEGATE_RUN_ID` is
+   set, a CLAUDE.md line can say "if `DELEGATE_RUN_ID` is set you are a worker:
+   skip pairing-mode, vault and briefing rules".
+
+- Do **not** use `--bare`: it skips OAuth and keychain auth.
+- Files: `internal/config/config.go`, `config_test.go`.
+- Verify: rerun the probe above; expect `yes no no` (then `no no no` after step 3).
+- Cursor equivalent: UNVERIFIED — check what `cursor-agent -p` loads.
+
+### 26 ⬜ `needs_input` status (about 30 minutes)
+
+Workers must not decide on ambiguity. Today `SummaryInstruction` only asks for
+"anything uncertain" in free text (`summary.go`), easy for the planner to miss.
+
+- Extend `SummaryInstruction`: if blocked by an ambiguity, stop and write
+  `<delegate-question>...</delegate-question>`.
+- `ExtractQuestion(output)`; when present, `status: needs_input` and
+  `question` in the JSON.
+- Files: `internal/runner/summary.go`, `summary_test.go`, `cmd/delegate/run.go`.
+- Idioms: `strings.Cut`, table-driven tests with edge cases (no block, empty
+  block, both summary and question).
 
 ## Known limitations (v1)
 
