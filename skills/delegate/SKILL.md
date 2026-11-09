@@ -73,10 +73,12 @@ Run it with the Bash tool **in the background** (`run_in_background: true`):
 a worker can take up to 30 minutes and a foreground Bash call times out at 10.
 
 ```bash
-delegate run --task <plan-file> --repo <repo> --profile <profile>
+delegate run --task <plan-file> --repo <repo> --profile <profile> \
+  --verify "<acceptance command 1>" --verify "<acceptance command 2>"
 ```
 
-Optional flags: `--timeout 45m` (default 30m), `--in-place`.
+Pass every command from the plan's acceptance criteria as a `--verify` (one
+flag each). Optional flags: `--timeout 45m` (default 30m), `--in-place`.
 
 Wait for the completion notification, then read the single JSON line:
 
@@ -86,6 +88,7 @@ Wait for the completion notification, then read the single JSON line:
 | `workdir`, `branch`, `base` | where the work is, and the commit it started from |
 | `files_changed`, `diffstat` | scope check before reading any code |
 | `summary` | the worker's own report (or the last 20 lines if it skipped the block) |
+| `verify` | per `--verify` command: `exit` and the last 30 lines in `tail` (full output in `verify-<n>.log`). Independent of `status` |
 | `log_dir` | `prompt.md`, `stdout.log`, `stderr.log`, `result.json` — read only when needed |
 
 - `error`: report the `error` text and stop. Nothing ran or nothing was diffed.
@@ -102,7 +105,9 @@ Wait for the completion notification, then read the single JSON line:
    - Hardcoded values, swallowed errors, secrets, debug leftovers?
    - Repo conventions followed (imports, test style, naming)?
 3. Run the acceptance commands **in the workdir** and keep the real output.
-   Never claim tests pass without having just run them.
+   Never claim tests pass without having just run them. If `verify` already
+   shows a non-zero `exit`, start from its `tail`: the run is not accepted as
+   is, so skip the line-by-line style review and report the failure.
 
 ## 4. Report
 

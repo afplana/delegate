@@ -86,6 +86,32 @@ func TestRun_MapsWorkerOutcomeToStatus(t *testing.T) {
 	}
 }
 
+func TestRun_VerifyRunsAcceptanceCommandsAfterTheWorker(t *testing.T) {
+	// The worker creates new.txt; the checks see its result in the workdir.
+	code, res := runDelegate(t, fakeWorker("touch new.txt"),
+		"--verify", "test -f new.txt && echo found", "--verify", "echo red; exit 4")
+
+	assert.Equal(t, 0, code, "a red check does not change the worker's exit")
+	assert.Equal(t, "ok", res.Status, "status stays the worker's")
+	require.Len(t, res.Verify, 2)
+	assert.Equal(t, verifyResult{Cmd: "test -f new.txt && echo found", Exit: 0, Tail: "found"}, res.Verify[0])
+	assert.Equal(t, verifyResult{Cmd: "echo red; exit 4", Exit: 4, Tail: "red"}, res.Verify[1])
+	for _, name := range []string{"verify-1.log", "verify-2.log"} {
+		assert.FileExists(t, filepath.Join(res.LogDir, name))
+	}
+}
+
+func TestRun_WithoutVerifyLeavesTheFieldOut(t *testing.T) {
+	// Every byte of the result costs the planner tokens.
+	code, res := runDelegate(t, fakeWorker("true"))
+
+	assert.Equal(t, 0, code)
+	assert.Nil(t, res.Verify)
+	line, err := os.ReadFile(filepath.Join(res.LogDir, "result.json"))
+	require.NoError(t, err)
+	assert.NotContains(t, string(line), `"verify"`)
+}
+
 func TestRun_ReportsDelegateFailuresAsJSON(t *testing.T) {
 	code, res := runDelegate(t, map[string]runner.Profile{})
 
