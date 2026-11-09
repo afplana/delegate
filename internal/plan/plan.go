@@ -75,7 +75,8 @@ func (p Plan) Missing() []string {
 
 // Files returns the entries of the optional "Files" section: the paths the
 // worker may change. List markers and backticks are stripped, so "- `cmd/**`"
-// reads as "cmd/**". No section means nil: no scope check.
+// reads as "cmd/**", and a leading "./" is dropped to match files_changed.
+// No section means nil: no scope check.
 func (p Plan) Files() []string {
 	body, ok := p.Section("Files")
 	if !ok {
@@ -87,6 +88,7 @@ func (p Plan) Files() []string {
 		entry = strings.TrimPrefix(entry, "- ")
 		entry = strings.TrimPrefix(entry, "* ")
 		entry = strings.Trim(strings.TrimSpace(entry), "`")
+		entry = strings.TrimPrefix(entry, "./")
 		if entry != "" {
 			files = append(files, entry)
 		}

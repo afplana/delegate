@@ -71,9 +71,10 @@ func TestSection_ReturnsBodyWithoutTheHeading(t *testing.T) {
 }
 
 func TestFiles_AcceptsBareBulletedAndBacktickedPaths(t *testing.T) {
-	p := plan.Parse("# Files\ninternal/x.go\n- `cmd/**`\n* docs/\n\n")
+	// files_changed is repo-relative without "./", so entries are normalised to match.
+	p := plan.Parse("# Files\ninternal/x.go\n- `cmd/**`\n* docs/\n- ./a.txt\n\n")
 
-	assert.Equal(t, []string{"internal/x.go", "cmd/**", "docs/"}, p.Files())
+	assert.Equal(t, []string{"internal/x.go", "cmd/**", "docs/", "a.txt"}, p.Files())
 }
 
 func TestFiles_NoSectionIsNil(t *testing.T) {
