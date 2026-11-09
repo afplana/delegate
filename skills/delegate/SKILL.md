@@ -65,8 +65,9 @@ appends it.
 
 ## 2. Delegate
 
-Pick the profile: `cursor` (default) or `claude-sonnet`. Use what the user
-named; otherwise the default.
+Pick the profile: `cursor` (default), `claude-sonnet`, or `claude-haiku` for
+fully specified, mechanical work (renames, sweeps, exact edits). Use what the
+user named; otherwise the default.
 
 Run it with the Bash tool **in the background** (`run_in_background: true`):
 a worker can take up to 30 minutes and a foreground Bash call times out at 10.

@@ -35,6 +35,13 @@ func Builtin() map[string]runner.Profile {
 			Args:    claudeArgs("sonnet"),
 			Timeout: defaultTimeout,
 		},
+		// For fully specified, mechanical work: renames, sweeps, exact edits.
+		"claude-haiku": {
+			Name:    "claude-haiku",
+			Command: "claude",
+			Args:    claudeArgs("haiku"),
+			Timeout: defaultTimeout,
+		},
 	}
 }
 

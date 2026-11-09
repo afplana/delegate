@@ -46,7 +46,7 @@ Every card ends the same way: `make check` green, then a commit.
 | File allowlist in the plan; `out_of_scope` in the result | ⬜ card 19 |
 | Plan check: refuse a plan without Goal, Steps, Acceptance criteria | ⬜ card 20 |
 | Cost, tokens and review verdict recorded per run | ⬜ card 21 |
-| `claude-haiku` profile | ⬜ card 22 |
+| `claude-haiku` profile | ✅ card 22 |
 | Skill: plans give paths and line ranges, not pasted code | ⬜ card 23 |
 | `repo` and `started_at` in `result.json` | ⬜ card 24 |
 | Worker isolated from the user's Claude setup | ⬜ card 25 |
@@ -269,7 +269,7 @@ no quality data).
 - Idioms: `json.Unmarshal` into a small struct per profile shape,
   `omitempty`, a `Parse func([]byte) (Usage, string, error)` field on `Profile`.
 
-### 22 ⬜ `claude-haiku` profile (about 10 minutes)
+### 22 ✅ `claude-haiku` profile (about 10 minutes)
 
 One entry next to `claude-sonnet` in `internal/config/config.go:23`, using
 `claudeArgs("haiku")`. For Tier C work in `~/.claude/CLAUDE.md` model routing:
