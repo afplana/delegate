@@ -79,6 +79,7 @@ for prompts too large for argv.
   "branch": "delegate/20261013-142900-ab12",
   "base": "<commit the worker started from>",
   "files_changed": ["internal/x.go"],
+  "out_of_scope": ["only changed files the plan's # Files section does not allow"],
   "diffstat": "3 files changed, 40 insertions(+), 2 deletions(-)",
   "summary": "worker's own summary, extracted from its output",
   "verify": [{"cmd": "go test ./...", "exit": 0, "timed_out": false, "tail": "last 30 lines"}],
@@ -91,6 +92,10 @@ Printed as one line. `log_dir` holds `prompt.md`, `stdout.log`, `stderr.log` and
 `result.json`. The caller reads them only when needed. `files_changed` and
 `diffstat` compare the workdir with `base`, so they include commits the worker made
 and new untracked files.
+
+`out_of_scope` appears only when the plan has a `# Files` section and some
+changed file matches none of its entries (exact path, `dir/` or `dir/**`, or a
+`path.Match` glob). Like `verify`, it never changes `status`.
 
 `verify` appears only with `--verify`: one entry per command, run with `sh -c` in
 the workdir after the worker, in order, all of them even after a failure, with

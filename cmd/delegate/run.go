@@ -32,6 +32,7 @@ type result struct {
 	Branch       string         `json:"branch,omitempty"`
 	Base         string         `json:"base,omitempty"`
 	FilesChanged []string       `json:"files_changed"`
+	OutOfScope   []string       `json:"out_of_scope,omitempty"` // changed files the plan's # Files does not allow
 	Diffstat     string         `json:"diffstat"`
 	Summary      string         `json:"summary"`
 	Verify       []verifyResult `json:"verify,omitempty"`
@@ -126,7 +127,8 @@ func execute(ctx context.Context, f runFlags, profiles map[string]runner.Profile
 	if err != nil {
 		return fail(fmt.Errorf("read task: %w", err))
 	}
-	if missing := plan.Parse(string(planText)).Missing(); len(missing) > 0 {
+	parsed := plan.Parse(string(planText))
+	if missing := parsed.Missing(); len(missing) > 0 {
 		return fail(fmt.Errorf("plan missing sections: %s", strings.Join(missing, ", ")))
 	}
 
@@ -171,6 +173,7 @@ func execute(ctx context.Context, f runFlags, profiles map[string]runner.Profile
 		res.FilesChanged = changes.Files
 	}
 	res.Diffstat = changes.Diffstat
+	res.OutOfScope = plan.OutOfScope(res.FilesChanged, parsed.Files())
 
 	checks := runner.Verify(ctx, ws.Dir, f.verify, profile.Timeout)
 	logs := make(map[string]string, len(checks))

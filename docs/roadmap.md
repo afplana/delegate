@@ -43,7 +43,7 @@ Every card ends the same way: `make check` green, then a commit.
 | Public release | ⬜ card 16 |
 | Recursion guard: a worker cannot start its own delegate run | ⬜ card 17 (Alain codes) |
 | `--verify`: delegate runs the acceptance commands itself | ✅ card 18 |
-| File allowlist in the plan; `out_of_scope` in the result | ⬜ card 19 |
+| File allowlist in the plan; `out_of_scope` in the result | ✅ card 19 |
 | Plan check: refuse a plan without Goal, Steps, Acceptance criteria | ✅ card 20 |
 | Cost, tokens and review verdict recorded per run | ⬜ card 21 |
 | `claude-haiku` profile | ✅ card 22 |
@@ -220,7 +220,7 @@ of a full diff review. Repeatable flag: `--verify "go test ./..." --verify "make
   planner still re-runs them during review (evidence policy), but stops early
   on a red verify.
 
-### 19 ⬜ File allowlist and `out_of_scope` (about 45 minutes)
+### 19 ✅ File allowlist and `out_of_scope` (about 45 minutes)
 
 The plan gets a `# Files` section: one path or glob per line. After the run,
 every entry of `files_changed` that matches none of them goes into
