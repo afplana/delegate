@@ -42,6 +42,15 @@ Every card ends the same way: `make check` green, then a commit.
 | Dirty-repo warning in the result | ⬜ card 15 |
 | Public release | ⬜ card 16 |
 | Recursion guard: a worker cannot start its own delegate run | ⬜ card 17 (Alain codes) |
+| `--verify`: delegate runs the acceptance commands itself | ⬜ card 18 |
+| File allowlist in the plan; `out_of_scope` in the result | ⬜ card 19 |
+| Plan check: refuse a plan without Goal, Steps, Acceptance criteria | ⬜ card 20 |
+| Cost, tokens and review verdict recorded per run | ⬜ card 21 |
+| `claude-haiku` profile | ⬜ card 22 |
+| Skill: plans give paths and line ranges, not pasted code | ⬜ card 23 |
+| `repo` and `started_at` in `result.json` | ⬜ card 24 |
+| Worker isolated from the user's Claude setup | ⬜ card 25 |
+| `needs_input` status when the worker hits an ambiguity | ⬜ card 26 |
 
 ## v1 slices (done)
 
@@ -108,6 +117,10 @@ changed file unless `--force` is passed.
 - Seam: pass the target dir in, so tests use `t.TempDir()`.
 - Idioms: `embed`, `os.MkdirAll`, `bytes.Equal` to detect changes.
 - Then replace the `install-skill` Makefile target with this command.
+- Also add a `doctor` check: `installed skill matches binary` (warn, not fail,
+  when they differ). On 2026-10-23 the installed copy had silently fallen
+  behind the repo (it still used `git add -A` and `branch -D`); this check
+  would have caught it.
 
 ### 11 ⬜ YAML config (about 1 hour)
 
@@ -136,6 +149,7 @@ Remove worktrees, `delegate/*` branches and run logs older than N days. This is
 destructive, so it shows what it would remove and needs `--yes` to act.
 
 - Idioms: `os.ReadDir`, `fs.FileInfo.ModTime`, `git worktree remove`, `git branch -D`.
+- State on 2026-10-23: 3 leftover worktrees, 21 MB.
 
 ### 14 ⬜ Codex and Gemini profiles (about 20 minutes plus real runs)
 
@@ -177,6 +191,155 @@ Guard inside delegate itself, so it works for every CLI and stays role-agnostic:
 - Idioms: `os.Environ`, `cmd.Env`, `os.LookupEnv`, `t.Setenv`.
 - Optional second layer: block the skill in the `claude-sonnet` profile args.
   Check `claude --help` for the exact disallowed-tools syntax first (UNVERIFIED).
+
+## Accuracy and efficiency cards (from the 2026-10-23 run review)
+
+Evidence: the 10 runs in `~/.local/state/delegate/runs` up to 2026-10-23. Nine
+ended `ok`, one `failed` (Cursor `--force` disabled by an admin, fixed in
+`2f2542b`). Every successful run wrote the `<delegate-summary>` block. Weak
+spots: in 2 runs the worker's output never mentions a test command, one run
+touched 18 files, and nothing records cost or how the review went. Highest
+payoff first.
+
+### 18 ⬜ `--verify "<cmd>"` (about 45 minutes)
+
+Run the acceptance commands **after** the worker exits, in the workdir, and put
+the outcome in the result: `"verify": {"cmd": "...", "exit": 0, "tail": "..."}`
+(last 30 lines of combined output). The result no longer depends on the worker
+saying it ran the tests, and a red run costs the planner one JSON line instead
+of a full diff review. Repeatable flag: `--verify "go test ./..." --verify "make lint"`.
+`status` stays the worker's status; verify is a separate field.
+
+- Files: `cmd/delegate/run.go`, `internal/runner/verify.go`, tests.
+- Seam: `runVerify(ctx, dir string, cmds []string) []VerifyResult`; test with
+  `sh -c 'exit 3'` and `sh -c 'echo ok'` in `t.TempDir()`.
+- Idioms: `exec.CommandContext` with `cmd.Dir`, `CombinedOutput`,
+  `errors.As(err, &exitErr)` for the exit code, a flag type implementing
+  `flag.Value` for the repeatable flag.
+- Skill follow-up: pass the plan's acceptance commands as `--verify`; the
+  planner still re-runs them during review (evidence policy), but stops early
+  on a red verify.
+
+### 19 ⬜ File allowlist and `out_of_scope` (about 45 minutes)
+
+The plan gets a `# Files` section: one path or glob per line. After the run,
+every entry of `files_changed` that matches none of them goes into
+`"out_of_scope": [...]`. Catches the most common drift (the 18-file run) without
+reading code. No `# Files` section means no check, so old plans still work.
+
+- Files: `internal/plan/plan.go` (parse sections), `cmd/delegate/run.go`, tests.
+- Seam: `plan.Parse(md string) (Plan, error)` and `OutOfScope(changed, allowed []string) []string`.
+- Cases: exact path, `internal/**` glob, a file outside both, empty section.
+- Idioms: `bufio.Scanner`, `strings.HasPrefix` for headings,
+  `path.Match` (note: no `**`; handle a trailing `/**` as a prefix match yourself).
+
+### 20 ⬜ Plan check before the worker starts (about 30 minutes)
+
+`delegate run` refuses a plan missing a `# Goal`, `# Steps` or
+`# Acceptance criteria` heading: `status: error`,
+`error: "plan missing sections: Steps, Acceptance criteria"`. The skill names
+ambiguity as the main cause of drift; this makes it impossible to hand over a
+plan without acceptance criteria. Reuses card 19's parser, so do 19 first.
+
+- Files: `internal/plan/plan.go`, `cmd/delegate/run.go`, tests.
+- Seam: `Plan.Missing() []string`.
+- Idioms: table-driven tests, `slices.Contains`.
+
+### 21 ⬜ Cost, tokens and review verdict per run (about 1 hour)
+
+Record what each run cost and whether its result was accepted, so the choice
+between Cursor and Sonnet rests on data (today: 4 Cursor runs, 6 Sonnet runs,
+no quality data).
+
+- Switch both profiles to `--output-format json` (verified 2026-10-23):
+  - `claude -p --output-format json` → `total_cost_usd`, `duration_ms`,
+    `num_turns`, `usage.{input_tokens,output_tokens,cache_read_input_tokens,...}`;
+    the reply text is in `result`.
+  - `cursor-agent -p --trust --output-format json` → `usage.{inputTokens,outputTokens,cacheReadTokens,cacheWriteTokens}`,
+    `duration_ms`, reply text in `result`. **No cost field.**
+- Add `"usage": {"input_tokens", "output_tokens", "cost_usd"}` to `result.json`
+  (`cost_usd` omitted for Cursor). Summary extraction now reads the JSON
+  `result` field instead of raw stdout.
+- New subcommand `delegate review <run-id> accepted|needs-fixes|failed [note]`
+  writes `runs/<id>/review.json`. The skill calls it after the user decides.
+- Later: `delegate stats` aggregates per profile (runs, accept rate, median
+  tokens, cost).
+- Files: `internal/config/config.go`, `internal/runner/summary.go`,
+  `cmd/delegate/review.go`, tests.
+- Idioms: `json.Unmarshal` into a small struct per profile shape,
+  `omitempty`, a `Parse func([]byte) (Usage, string, error)` field on `Profile`.
+
+### 22 ⬜ `claude-haiku` profile (about 10 minutes)
+
+One entry next to `claude-sonnet` in `internal/config/config.go:23`, using
+`claudeArgs("haiku")`. For Tier C work in `~/.claude/CLAUDE.md` model routing:
+renames, mechanical sweeps, fully specified edits.
+
+- Test: `Lookup("claude-haiku")` returns `--model haiku`.
+
+### 23 ⬜ Skill: paths and line ranges, not pasted code (about 15 minutes)
+
+`skills/delegate/SKILL.md` § Plan asks the planner to paste "the 5–20 lines
+that matter" from each file. The worker can read files itself, so the planner
+spends Opus tokens copying code the worker re-reads anyway. Change the template
+to `path:start-end — why it matters`. Keep a short paste only for code the
+worker must **not** read past (e.g. one function in a huge file).
+
+- Files: `skills/delegate/SKILL.md`. Then reinstall the skill (card 9c).
+
+### 24 ⬜ `repo` and `started_at` in `result.json` (about 15 minutes)
+
+Today a past run can't be traced back to its repo or start time
+(`result.json` has `duration_ms` but no timestamp or source repo). Add
+`"repo": "<abs path>"` and `"started_at": "<RFC 3339 UTC>"`.
+
+- Files: `cmd/delegate/run.go`, `run_test.go`.
+- Idioms: `time.Now().UTC().Format(time.RFC3339)`, `filepath.Abs`.
+
+## Worker contract cards (from the 2026-10-19 multi-agent review)
+
+Merged in from the unmerged `docs/roadmap-multi-agent-cards` branch (`fcba3bb`).
+Its `--verify`, cost and `claude-haiku` cards are covered by 18, 21 and 22.
+
+### 25 ⬜ Isolate the worker from the user's setup (about 20 minutes)
+
+The `claude-sonnet` worker loads the user's whole personal setup. Probe on
+2026-10-19 (Haiku answering yes/no about its own context, run from this repo):
+
+| Args | user CLAUDE.md | learning output style | MCP tools | wall time |
+|---|---|---|---|---|
+| current profile args | yes | yes | yes | 12.6 s |
+| `+ --setting-sources project --strict-mcp-config` | yes | no | no | 6.9 s |
+
+A learning output style can make the worker leave `TODO(human)` gaps; a user
+rule like "ask which pairing mode" can make it stop and ask. Fix:
+
+1. Add `--setting-sources project --strict-mcp-config` in `claudeArgs`
+   (`internal/config/config.go`, after PR #7), before the `--` separator.
+2. Add `--append-system-prompt` with a short worker contract: you are a
+   delegate worker, do not ask questions mid-task (use card 26), do not write
+   outside the worktree.
+3. User CLAUDE.md still loads. Pair with card 17: once `DELEGATE_RUN_ID` is
+   set, a CLAUDE.md line can say "if `DELEGATE_RUN_ID` is set you are a worker:
+   skip pairing-mode, vault and briefing rules".
+
+- Do **not** use `--bare`: it skips OAuth and keychain auth.
+- Files: `internal/config/config.go`, `config_test.go`.
+- Verify: rerun the probe above; expect `yes no no` (then `no no no` after step 3).
+- Cursor equivalent: UNVERIFIED — check what `cursor-agent -p` loads.
+
+### 26 ⬜ `needs_input` status (about 30 minutes)
+
+Workers must not decide on ambiguity. Today `SummaryInstruction` only asks for
+"anything uncertain" in free text (`summary.go`), easy for the planner to miss.
+
+- Extend `SummaryInstruction`: if blocked by an ambiguity, stop and write
+  `<delegate-question>...</delegate-question>`.
+- `ExtractQuestion(output)`; when present, `status: needs_input` and
+  `question` in the JSON.
+- Files: `internal/runner/summary.go`, `summary_test.go`, `cmd/delegate/run.go`.
+- Idioms: `strings.Cut`, table-driven tests with edge cases (no block, empty
+  block, both summary and question).
 
 ## Known limitations (v1)
 
