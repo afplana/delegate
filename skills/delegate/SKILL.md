@@ -95,7 +95,7 @@ Wait for the completion notification, then read the single JSON line:
 
 | Field | Use it for |
 |---|---|
-| `status` | `ok` / `failed` (non-zero exit) / `timeout` / `error` (delegate itself failed — see `error`) |
+| `status` | `ok` / `needs_input` (worker asked something — see `question`) / `failed` (non-zero exit) / `timeout` / `error` (delegate itself failed — see `error`) |
 | `workdir`, `branch`, `base` | where the work is, and the commit it started from |
 | `files_changed`, `diffstat` | scope check before reading any code |
 | `out_of_scope` | changed files outside the plan's `# Files`; review these first. Absent when everything is in scope or the plan had no `# Files` |
@@ -108,6 +108,10 @@ Wait for the completion notification, then read the single JSON line:
   sections and run again without asking.
 - `timeout` or `failed`: still review — partial work may be useful. Read the
   tail of `stderr.log` before guessing why.
+- `needs_input`: the worker stopped short on purpose; `question` says why.
+  Review what it did as usual. Answer from the code or the ticket if you can
+  and say so in the report; a product or business choice goes to the user.
+  The answer feeds the next round (§ 5, "Another round").
 
 ## 3. Review
 

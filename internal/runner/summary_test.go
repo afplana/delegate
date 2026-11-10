@@ -47,3 +47,48 @@ func numberedLines(from, to int) string {
 	}
 	return strings.Join(lines, "\n")
 }
+
+func TestExtractQuestion(t *testing.T) {
+	tests := []struct {
+		name   string
+		output string
+		want   string
+		found  bool
+	}{
+		{name: "no block", output: "done\n<delegate-summary>\nok\n</delegate-summary>\n", found: false},
+		{
+			name:   "returns the text inside the question block",
+			output: "<delegate-question>\nKeep the old flag as an alias?\n</delegate-question>\n",
+			want:   "Keep the old flag as an alias?",
+			found:  true,
+		},
+		{name: "empty block is no question", output: "<delegate-question>\n  \n</delegate-question>", found: false},
+		{
+			name: "question and summary side by side",
+			output: "<delegate-summary>\nDid steps 1-2.\n</delegate-summary>\n" +
+				"<delegate-question>\nStep 3: which timezone?\n</delegate-question>\n",
+			want:  "Step 3: which timezone?",
+			found: true,
+		},
+		{
+			// A worker cut off mid-block still asked something worth reading.
+			name:   "unclosed block takes the rest of the output",
+			output: "<delegate-question>\nWhich DB?",
+			want:   "Which DB?",
+			found:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, found := runner.ExtractQuestion(tt.output)
+
+			assert.Equal(t, tt.found, found)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestPromptTellsTheWorkerHowToAsk(t *testing.T) {
+	assert.Contains(t, runner.SummaryInstruction, "<delegate-question>")
+}

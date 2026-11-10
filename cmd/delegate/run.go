@@ -27,7 +27,7 @@ type result struct {
 	Profile      string         `json:"profile"`
 	Repo         string         `json:"repo"`       // absolute path of --repo
 	StartedAt    string         `json:"started_at"` // RFC 3339, UTC
-	Status       string         `json:"status"`     // ok | failed | timeout | error
+	Status       string         `json:"status"`     // ok | needs_input | failed | timeout | error
 	ExitCode     int            `json:"exit_code"`
 	DurationMS   int64          `json:"duration_ms"`
 	Workdir      string         `json:"workdir,omitempty"`
@@ -37,6 +37,7 @@ type result struct {
 	OutOfScope   []string       `json:"out_of_scope,omitempty"` // changed files the plan's # Files does not allow
 	Diffstat     string         `json:"diffstat"`
 	Summary      string         `json:"summary"`
+	Question     string         `json:"question,omitempty"` // what the worker needs answered
 	Verify       []verifyResult `json:"verify,omitempty"`
 	LogDir       string         `json:"log_dir,omitempty"`
 	Error        string         `json:"error,omitempty"`
@@ -195,17 +196,23 @@ func execute(ctx context.Context, f runFlags, profiles map[string]runner.Profile
 
 	res.ExitCode = out.ExitCode
 	res.Summary = runner.ExtractSummary(out.Output)
-	res.Status = status(out)
+	question, asked := runner.ExtractQuestion(out.Output)
+	res.Question = question
+	res.Status = status(out, asked)
 	res.DurationMS = time.Since(start).Milliseconds()
 	return res
 }
 
-func status(out runner.Result) string {
+// status maps the worker's outcome. A crash or timeout wins over a question:
+// the process outcome is what the planner must handle first.
+func status(out runner.Result, asked bool) string {
 	switch {
 	case out.TimedOut:
 		return "timeout"
 	case out.ExitCode != 0:
 		return "failed"
+	case asked:
+		return "needs_input"
 	default:
 		return "ok"
 	}

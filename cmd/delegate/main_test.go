@@ -83,6 +83,19 @@ func TestRun_MapsWorkerOutcomeToStatus(t *testing.T) {
 	}{
 		{name: "non-zero exit is failed", script: "exit 3", status: "failed", exitCode: 3},
 		{name: "timeout is timeout", script: "sleep 3", args: []string{"--timeout", "100ms"}, status: "timeout", exitCode: -1},
+		{
+			// A question after a clean exit means the work is not done yet.
+			name:     "question after a clean exit is needs_input",
+			script:   `printf '<delegate-question>\nWhich name?\n</delegate-question>\n'`,
+			status:   "needs_input",
+			exitCode: 0,
+		},
+		{
+			name:     "a failed exit stays failed even with a question",
+			script:   `printf '<delegate-question>\nWhich name?\n</delegate-question>\n'; exit 2`,
+			status:   "failed",
+			exitCode: 2,
+		},
 	}
 
 	for _, tt := range tests {
@@ -169,6 +182,16 @@ func TestRun_RefusesAPlanWithoutRequiredSections(t *testing.T) {
 	assert.Equal(t, "error", res.Status)
 	assert.Equal(t, "plan missing sections: Steps, Acceptance criteria", res.Error)
 	assert.Empty(t, res.Workdir, "no worktree is created for a refused plan")
+}
+
+func TestRun_ReportsTheWorkersQuestion(t *testing.T) {
+	script := `printf '<delegate-summary>\nDid step 1.\n</delegate-summary>\n<delegate-question>\nStep 2: keep the alias?\n</delegate-question>\n'`
+
+	_, res := runDelegate(t, fakeWorker(script))
+
+	assert.Equal(t, "needs_input", res.Status)
+	assert.Equal(t, "Step 2: keep the alias?", res.Question)
+	assert.Equal(t, "Did step 1.", res.Summary)
 }
 
 func TestRun_ReportsDelegateFailuresAsJSON(t *testing.T) {
