@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -65,6 +66,7 @@ func TestRun_ReportsWorkerChangesAsCompactJSON(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, string(prompt), "Create new.txt", "the task file reaches the worker")
 	assert.Contains(t, string(prompt), "<delegate-summary>", "the worker is told how to report")
+	assert.True(t, strings.HasPrefix(string(prompt), runner.WorkerContract), "the worker contract comes first")
 
 	for _, name := range []string{"prompt.md", "stdout.log", "stderr.log", "result.json"} {
 		assert.FileExists(t, filepath.Join(res.LogDir, name))

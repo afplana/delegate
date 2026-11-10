@@ -51,7 +51,9 @@ profiles:
   claude-sonnet:
     command: claude
     # --allowedTools is variadic, so "--" keeps it from swallowing the prompt
+    # project-only settings and no MCP keep the user's personal setup out
     args: ["-p", "--model", "sonnet", "--permission-mode", "acceptEdits",
+           "--setting-sources", "project", "--strict-mcp-config",
            "--allowedTools", "Bash(go *)", "Bash(make *)", "Bash(git commit *)", "...",
            "--", "{prompt}"]
     timeout: 30m

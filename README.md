@@ -133,7 +133,9 @@ Output (one line, pretty-printed here):
 Bad flags print usage to stderr and exit 2. Full output lives in `log_dir`:
 `prompt.md`, `stdout.log`, `stderr.log`, `result.json`.
 
-The worker is told to end with a `<delegate-summary>` block; that becomes
+Every prompt starts with a short worker contract (unattended, no questions,
+stay in the worktree, no push) and the worker is told to end with a
+`<delegate-summary>` block; that becomes
 `summary`. If it does not, `summary` is the last 20 lines of its output.
 
 `--verify "<cmd>"` (repeatable) runs a shell command in the workdir after the
@@ -168,7 +170,7 @@ git worktree remove <workdir> && git branch -d <branch>
 | Profile | Command | Notes |
 |---|---|---|
 | `cursor` (default) | `cursor-agent -p --trust --output-format text {prompt}` | No `--force`, so it also works where an admin disabled "Run Everything". Shell commands may be restricted; the planner runs the tests. |
-| `claude-sonnet` | `claude -p --model sonnet --permission-mode acceptEdits --allowedTools <list> -- {prompt}` | Edits are allowed, plus `go`, `gofmt`, `make`, `golangci-lint`, `gotestsum`, `which` and `git add/commit/status/diff`. Anything else that would prompt is denied (`git push` included). Claude's "sensitive file" guard (e.g. `.pre-commit-config.yaml`) cannot be lifted by an allow rule: write those files yourself before delegating. |
+| `claude-sonnet` | `claude -p --model sonnet --permission-mode acceptEdits --setting-sources project --strict-mcp-config --allowedTools <list> -- {prompt}` | Your personal Claude settings (output style, hooks) and MCP servers are not loaded; the repo's own settings are. Your global `CLAUDE.md` still is. Edits are allowed, plus `go`, `gofmt`, `make`, `golangci-lint`, `gotestsum`, `which` and `git add/commit/status/diff`. Anything else that would prompt is denied (`git push` included). Claude's "sensitive file" guard (e.g. `.pre-commit-config.yaml`) cannot be lifted by an allow rule: write those files yourself before delegating. |
 | `claude-haiku` | `claude -p --model haiku ...` (same args as `claude-sonnet`) | Same permissions as `claude-sonnet`. For fully specified, mechanical work: renames, sweeps, exact edits. |
 
 All three time out after 30 minutes by default. Custom profiles via a config file are
