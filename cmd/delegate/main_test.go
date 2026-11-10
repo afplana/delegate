@@ -222,6 +222,33 @@ func TestRun_RefusesToStartInsideAnotherRun(t *testing.T) {
 	assert.Empty(t, res.Workdir, "no worktree for a refused run")
 }
 
+func TestRun_ReadsReplyAndUsageThroughTheProfileParser(t *testing.T) {
+	profiles := fakeWorker(`printf '{"result":"<delegate-summary>\\nparsed\\n</delegate-summary>","usage":{"inputTokens":7,"outputTokens":3}}'`)
+	p := profiles["fake"]
+	p.Parse = runner.ParseCursorJSON
+	profiles["fake"] = p
+
+	_, res := runDelegate(t, profiles)
+
+	assert.Equal(t, "parsed", res.Summary, "summary comes from the parsed reply, not raw JSON")
+	require.NotNil(t, res.Usage)
+	assert.Equal(t, int64(7), res.Usage.InputTokens)
+	assert.Equal(t, int64(3), res.Usage.OutputTokens)
+}
+
+func TestRun_FallsBackToRawOutputWhenParsingFails(t *testing.T) {
+	profiles := fakeWorker(`echo "plain crash text"; exit 1`)
+	p := profiles["fake"]
+	p.Parse = runner.ParseCursorJSON
+	profiles["fake"] = p
+
+	_, res := runDelegate(t, profiles)
+
+	assert.Equal(t, "failed", res.Status)
+	assert.Equal(t, "plain crash text", res.Summary)
+	assert.Nil(t, res.Usage)
+}
+
 func TestRun_ReportsDelegateFailuresAsJSON(t *testing.T) {
 	code, res := runDelegate(t, map[string]runner.Profile{})
 

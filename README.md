@@ -118,6 +118,7 @@ Output (one line, pretty-printed here):
   "files_changed": ["cmd/delegate/version_test.go"],
   "diffstat": "1 file changed, 18 insertions(+)",
   "summary": "Added version_test.go only … acceptance criteria met.",
+  "usage": {"input_tokens": 17070, "output_tokens": 412, "cache_read_tokens": 64, "cache_write_tokens": 0},
   "verify": [{"cmd": "go test ./...", "exit": 0, "tail": "ok  …/cmd/delegate 1.2s"}],
   "log_dir": "~/.local/state/delegate/runs/20261015-085020-f97f"
 }
@@ -139,6 +140,12 @@ The worker runs with `DELEGATE_RUN_ID=<run-id>` in its environment, and
 worker of its own. Your global `CLAUDE.md` can use it too, e.g. "if
 `DELEGATE_RUN_ID` is set, you are a delegate worker: skip my personal workflow
 rules".
+
+Both CLIs run with `--output-format json`: delegate takes the worker's reply
+from it (for `summary` and `question`) and fills `usage` with token counts,
+plus `cost_usd` for Claude (Cursor reports none). If the output isn't valid
+JSON, e.g. the worker crashed early, the raw text is used and `usage` is left
+out. Raw output stays in `stdout.log`.
 
 Every prompt starts with a short worker contract (unattended, no questions,
 stay in the worktree, no push) and the worker is told to end with a
@@ -176,7 +183,7 @@ git worktree remove <workdir> && git branch -d <branch>
 
 | Profile | Command | Notes |
 |---|---|---|
-| `cursor` (default) | `cursor-agent -p --trust --output-format text {prompt}` | No `--force`, so it also works where an admin disabled "Run Everything". Shell commands may be restricted; the planner runs the tests. |
+| `cursor` (default) | `cursor-agent -p --trust --output-format json {prompt}` | Reports tokens, no cost. No `--force`, so it also works where an admin disabled "Run Everything". Shell commands may be restricted; the planner runs the tests. |
 | `claude-sonnet` | `claude -p --model sonnet --permission-mode acceptEdits --setting-sources project --strict-mcp-config --allowedTools <list> -- {prompt}` | Your personal Claude settings (output style, hooks) and MCP servers are not loaded; the repo's own settings are. Your global `CLAUDE.md` still is. Edits are allowed, plus `go`, `gofmt`, `make`, `golangci-lint`, `gotestsum`, `which` and `git add/commit/status/diff`. Anything else that would prompt is denied (`git push` included). Claude's "sensitive file" guard (e.g. `.pre-commit-config.yaml`) cannot be lifted by an allow rule: write those files yourself before delegating. |
 | `claude-haiku` | `claude -p --model haiku ...` (same args as `claude-sonnet`) | Same permissions as `claude-sonnet`. For fully specified, mechanical work: renames, sweeps, exact edits. |
 

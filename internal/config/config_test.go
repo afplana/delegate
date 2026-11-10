@@ -132,3 +132,16 @@ func TestBuiltin_ClaudeProfilesEndOptionsBeforePrompt(t *testing.T) {
 		})
 	}
 }
+
+func TestBuiltin_JSONOutputAlwaysHasAParser(t *testing.T) {
+	// Without a parser the planner would get raw JSON as the summary.
+	for name, profile := range config.Builtin() {
+		t.Run(name, func(t *testing.T) {
+			i := slices.Index(profile.Args, "--output-format")
+			require.NotEqual(t, -1, i)
+			require.Less(t, i+1, len(profile.Args))
+			assert.Equal(t, "json", profile.Args[i+1])
+			assert.NotNil(t, profile.Parse)
+		})
+	}
+}

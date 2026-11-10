@@ -45,11 +45,11 @@ Every card ends the same way: `make check` green, then a commit.
 | `--verify`: delegate runs the acceptance commands itself | ✅ card 18 |
 | File allowlist in the plan; `out_of_scope` in the result | ✅ card 19 |
 | Plan check: refuse a plan without Goal, Steps, Acceptance criteria | ✅ card 20 |
-| Cost, tokens and review verdict recorded per run | ⬜ card 21 |
+| Cost, tokens and review verdict recorded per run | 🟡 card 21 (usage done; `review` and `stats` open) |
 | `claude-haiku` profile | ✅ card 22 |
 | Skill: plans give paths and line ranges, not pasted code | ✅ card 23 |
 | `repo` and `started_at` in `result.json` | ✅ card 24 |
-| Worker isolated from the user's Claude setup | 🟡 card 25 (steps 1–2 done and probed; step 3 = a line in the user's CLAUDE.md) |
+| Worker isolated from the user's Claude setup | ✅ card 25 |
 | `needs_input` status when the worker hits an ambiguity | ✅ card 26 |
 
 ## v1 slices (done)
@@ -252,7 +252,15 @@ parsing markdown can't fail.
 - Seam: `Plan.Missing() []string`.
 - Idioms: table-driven tests, `slices.Contains`.
 
-### 21 ⬜ Cost, tokens and review verdict per run (about 1 hour)
+### 21 🟡 Cost, tokens and review verdict per run (about 1 hour)
+
+State 2026-11-10: usage done. Profiles carry a `Parse` func
+(`runner.ParseClaudeJSON` / `ParseCursorJSON`); the Cursor shape is from a real
+run, the Claude shape re-checked live on 2026-11-10 from a plain terminal
+(`result`, `total_cost_usd` 0.0111, `usage.input_tokens` 2 for a haiku
+"reply ok"; Claude Code's MCP-policy warnings go to stderr, so stdout stays
+valid JSON).
+Open: `delegate review` and `delegate stats`.
 
 Record what each run cost and whether its result was accepted, so the choice
 between Cursor and Sonnet rests on data (today: 4 Cursor runs, 6 Sonnet runs,
@@ -308,15 +316,15 @@ Today a past run can't be traced back to its repo or start time
 Merged in from the unmerged `docs/roadmap-multi-agent-cards` branch (`fcba3bb`).
 Its `--verify`, cost and `claude-haiku` cards are covered by 18, 21 and 22.
 
-### 25 🟡 Isolate the worker from the user's setup (about 20 minutes)
+### 25 ✅ Isolate the worker from the user's setup (about 20 minutes)
 
 State 2026-11-10: step 1 done. Step 2 done differently: the contract is
 `runner.WorkerContract`, prepended to **every** prompt instead of Claude's
 `--append-system-prompt`, so Cursor gets it too and delegate stays
 CLI-agnostic. Probe rerun 2026-11-10 from a plain terminal with the new
 flags: output style **no**, MCP tools **no** (user CLAUDE.md still loads, as
-expected). Open: step 3, now unblocked by card 17: a line in the user's
-global `CLAUDE.md` (outside this repo).
+expected). Step 3 done 2026-11-10: a "Delegate workers" rule keyed on
+`DELEGATE_RUN_ID` in the user's global `CLAUDE.md` (outside this repo).
 
 The `claude-sonnet` worker loads the user's whole personal setup. Probe on
 2026-10-19 (Haiku answering yes/no about its own context, run from this repo):
