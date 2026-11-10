@@ -75,7 +75,7 @@ func TestClean_SaysTheWorktreeWentWhenOnlyTheBranchIsKept(t *testing.T) {
 	gittest.Run(t, worktree, "commit", "--message", "worker commit")
 	var stdout, stderr bytes.Buffer
 
-	code := runCommands(t.Context(), []string{"clean", "--yes"}, &stdout, &stderr, nil)
+	code := runCommands(t.Context(), []string{"clean", "--yes"}, &stdout, &stderr, withProfiles(nil))
 
 	require.Equal(t, 0, code)
 	out := stdout.String()
