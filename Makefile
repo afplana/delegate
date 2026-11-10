@@ -21,9 +21,8 @@ build:           ## build ./bin/delegate
 install:         ## install delegate into $GOPATH/bin
 	go install -ldflags "-X main.version=$(VERSION)" ./cmd/delegate
 
-install-skill:   ## copy (never symlink) the Claude Code skill into ~/.claude/skills
-	mkdir -p $(HOME)/.claude/skills/delegate
-	cp skills/delegate/SKILL.md $(HOME)/.claude/skills/delegate/SKILL.md
+install-skill:   ## copy (never symlink) the Claude Code skill into ~/.claude/skills; FORCE=1 to overwrite local changes
+	go run ./cmd/delegate skill install $(if $(FORCE),--force)
 
 secrets:         ## scan the whole git history for secrets
 	gitleaks git --redact --verbose
