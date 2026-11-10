@@ -62,6 +62,19 @@ func TestDoctor(t *testing.T) {
 			},
 		},
 		{
+			name: "default binary missing names what is installed",
+			profiles: map[string]runner.Profile{
+				config.DefaultProfile: {Name: config.DefaultProfile, Command: "delegate-no-such-binary"},
+				"other":               {Name: "other", Command: "sh"},
+			},
+			wantCode: 1,
+			assertOut: func(t *testing.T, lines []string) {
+				def := lineFor(lines, "default profile")
+				assert.True(t, strings.HasPrefix(def, "FAIL"))
+				assert.Contains(t, def, "installed profiles: other")
+			},
+		},
+		{
 			name:     "default profile not configured",
 			profiles: map[string]runner.Profile{},
 			wantCode: 1,

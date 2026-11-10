@@ -108,6 +108,10 @@ Wait for the completion notification, then read the single JSON line:
 - `error`: report the `error` text and stop. Nothing ran or nothing was diffed.
   Exception: `plan missing sections: ...` is your own plan's fault. Add the
   sections and run again without asking.
+  Exception: `... not on PATH; installed profiles: ...` means that CLI isn't
+  installed here. Don't pick another one yourself (cost, model and permissions
+  differ): ask the user which of the listed installed profiles to use, with
+  your recommendation, then run again with `--profile`. Nothing was created.
 - `timeout` or `failed`: still review — partial work may be useful. Read the
   tail of `stderr.log` before guessing why.
 - `needs_input`: the worker stopped short on purpose; `question` says why.

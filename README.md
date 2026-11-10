@@ -103,6 +103,11 @@ sections (any heading level, any case; headings inside code fences don't
 count). Otherwise delegate refuses before creating a worktree:
 `status: error`, `error: "plan missing sections: Steps, Acceptance criteria"`.
 
+If the profile's CLI isn't installed, delegate also refuses up front and names
+the profiles that are, e.g. `default profile "codex": command "codex" not on
+PATH; installed profiles: claude-haiku, claude-sonnet, cursor; pass --profile
+<name> or set default_profile in ~/.config/delegate/config.yaml`.
+
 An optional `# Files` section lists what the worker may change, one entry per
 line (`- ` and backticks are fine): an exact path, `dir/` or `dir/**` for a
 whole directory, or a one-segment glob like `internal/*_test.go`. Changed files

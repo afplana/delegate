@@ -156,12 +156,17 @@ func execute(ctx context.Context, f runFlags, cfg config.Config) result {
 	if err != nil {
 		return fail(err)
 	}
-	if f.profile == "" {
+	isDefault := f.profile == ""
+	if isDefault {
 		f.profile = cfg.Default
 	}
 	res.Profile = f.profile
 	profile, err := config.Lookup(cfg.Profiles, f.profile)
 	if err != nil {
+		return fail(err)
+	}
+	// Checked before the worktree exists, so a missing CLI leaves nothing behind.
+	if _, err := findCommand(cfg, profile, isDefault); err != nil {
 		return fail(err)
 	}
 	if f.timeout > 0 {
