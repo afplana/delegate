@@ -49,7 +49,7 @@ Every card ends the same way: `make check` green, then a commit.
 | `claude-haiku` profile | ✅ card 22 |
 | Skill: plans give paths and line ranges, not pasted code | ✅ card 23 |
 | `repo` and `started_at` in `result.json` | ✅ card 24 |
-| Worker isolated from the user's Claude setup | 🟡 card 25 (steps 1–2 done; probe and step 3 open) |
+| Worker isolated from the user's Claude setup | 🟡 card 25 (steps 1–2 done and probed; step 3 needs card 17) |
 | `needs_input` status when the worker hits an ambiguity | ⬜ card 26 |
 
 ## v1 slices (done)
@@ -309,9 +309,9 @@ Its `--verify`, cost and `claude-haiku` cards are covered by 18, 21 and 22.
 State 2026-11-10: step 1 done. Step 2 done differently: the contract is
 `runner.WorkerContract`, prepended to **every** prompt instead of Claude's
 `--append-system-prompt`, so Cursor gets it too and delegate stays
-CLI-agnostic. Open: the live probe (headless `claude -p` fails
-`OAuth session expired` from the Claude Code desktop shell) and step 3
-(needs card 17).
+CLI-agnostic. Probe rerun 2026-11-10 from a plain terminal with the new
+flags: output style **no**, MCP tools **no** (user CLAUDE.md still loads, as
+expected). Open: step 3 (needs card 17).
 
 The `claude-sonnet` worker loads the user's whole personal setup. Probe on
 2026-10-19 (Haiku answering yes/no about its own context, run from this repo):
@@ -364,6 +364,11 @@ Workers must not decide on ambiguity. Today `SummaryInstruction` only asks for
   lifted by an `Edit(path)` allow rule (checked 2026-10-23, Claude Code
   2.1.295): the planner writes those files itself. Either way the planner
   runs the tests during review.
+- A Claude worker started from inside a Claude Code desktop-app session can
+  fail with `OAuth session expired and could not be refreshed`, while the same
+  `claude -p` works from a plain terminal (seen 2026-11-09/10, Claude Code
+  2.1.295; stripping `CLAUDE*`/`ANTHROPIC*` env vars did not help). Run
+  delegate from a regular terminal session if you hit it.
 - No progress output while the worker runs; `delegate` is silent until it ends.
 - macOS and Linux only: on timeout or Ctrl-C the worker's whole process group
   is killed (`syscall.Kill`), which does not compile on Windows.
