@@ -87,12 +87,12 @@ func (l *stringList) Set(v string) error {
 
 // runTask implements `delegate run`. Flag mistakes print usage and return 2.
 // Anything after that prints a JSON result, so the caller always gets one.
-func runTask(ctx context.Context, args []string, stdout, stderr io.Writer, profiles map[string]runner.Profile) int {
+func runTask(ctx context.Context, args []string, stdout, stderr io.Writer, cfg config.Config) int {
 	var f runFlags
 	fs := flag.NewFlagSet("run", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.StringVar(&f.task, "task", "", "file with the plan for the worker (required)")
-	fs.StringVar(&f.profile, "profile", config.DefaultProfile, "worker profile")
+	fs.StringVar(&f.profile, "profile", "", "worker profile (default: default_profile from the config, else "+config.DefaultProfile+")")
 	fs.StringVar(&f.repo, "repo", ".", "git repository to work on")
 	fs.BoolVar(&f.inPlace, "in-place", false, "work in --repo itself instead of a new worktree (refused on main/master)")
 	fs.DurationVar(&f.timeout, "timeout", 0, "stop the worker after this long (default: the profile's)")
@@ -106,7 +106,7 @@ func runTask(ctx context.Context, args []string, stdout, stderr io.Writer, profi
 		return 2
 	}
 
-	res := execute(ctx, f, profiles)
+	res := execute(ctx, f, cfg)
 	line, err := json.Marshal(res)
 	if err != nil {
 		fmt.Fprintf(stderr, "delegate: encode result: %v\n", err)
@@ -125,7 +125,7 @@ func runTask(ctx context.Context, args []string, stdout, stderr io.Writer, profi
 }
 
 // execute does one run. Failures of delegate itself become status "error".
-func execute(ctx context.Context, f runFlags, profiles map[string]runner.Profile) result {
+func execute(ctx context.Context, f runFlags, cfg config.Config) result {
 	start := time.Now()
 	res := result{
 		RunID:        newRunID(start),
@@ -146,7 +146,21 @@ func execute(ctx context.Context, f runFlags, profiles map[string]runner.Profile
 	if outer := os.Getenv(runIDEnv); outer != "" {
 		return fail(fmt.Errorf("nested delegate run inside run %s", outer))
 	}
-	profile, err := config.Lookup(profiles, f.profile)
+	// The repo's .delegate.yaml may pick the default profile and timeouts,
+	// never what runs (see config.WithRepoFile).
+	root, err := workspace.Root(ctx, f.repo)
+	if err != nil {
+		return fail(err)
+	}
+	cfg, err = cfg.WithRepoFile(filepath.Join(root, ".delegate.yaml"))
+	if err != nil {
+		return fail(err)
+	}
+	if f.profile == "" {
+		f.profile = cfg.Default
+	}
+	res.Profile = f.profile
+	profile, err := config.Lookup(cfg.Profiles, f.profile)
 	if err != nil {
 		return fail(err)
 	}

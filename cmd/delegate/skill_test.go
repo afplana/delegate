@@ -17,7 +17,7 @@ func TestSkillInstall_UsesClaudeConfigDir(t *testing.T) {
 	t.Setenv("CLAUDE_CONFIG_DIR", config)
 	var stdout, stderr bytes.Buffer
 
-	code := runCommands(t.Context(), []string{"skill", "install"}, &stdout, &stderr, nil)
+	code := runCommands(t.Context(), []string{"skill", "install"}, &stdout, &stderr, withProfiles(nil))
 
 	require.Equal(t, 0, code, "stderr: %s", stderr.String())
 	target := filepath.Join(config, "skills", "delegate", "SKILL.md")
@@ -35,15 +35,15 @@ func TestSkillInstall_RefusesLocalChangesWithoutForce(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte("curl copy\n"), 0o600))
 	var stdout, stderr bytes.Buffer
 
-	assert.Equal(t, 1, runCommands(t.Context(), []string{"skill", "install"}, &stdout, &stderr, nil))
+	assert.Equal(t, 1, runCommands(t.Context(), []string{"skill", "install"}, &stdout, &stderr, withProfiles(nil)))
 	assert.Contains(t, stderr.String(), "--force")
-	assert.Equal(t, 0, runCommands(t.Context(), []string{"skill", "install", "--force"}, &stdout, &stderr, nil))
+	assert.Equal(t, 0, runCommands(t.Context(), []string{"skill", "install", "--force"}, &stdout, &stderr, withProfiles(nil)))
 	assert.Contains(t, stdout.String(), "upgraded")
 }
 
 func TestSkill_UnknownSubcommandIsUsage(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 
-	assert.Equal(t, 2, runCommands(t.Context(), []string{"skill"}, &stdout, &stderr, nil))
-	assert.Equal(t, 2, runCommands(t.Context(), []string{"skill", "remove"}, &stdout, &stderr, nil))
+	assert.Equal(t, 2, runCommands(t.Context(), []string{"skill"}, &stdout, &stderr, withProfiles(nil)))
+	assert.Equal(t, 2, runCommands(t.Context(), []string{"skill", "remove"}, &stdout, &stderr, withProfiles(nil)))
 }

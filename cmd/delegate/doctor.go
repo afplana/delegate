@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 
 	"github.com/afplana/delegate/internal/config"
-	"github.com/afplana/delegate/internal/runner"
 	"github.com/afplana/delegate/skills"
 )
 
@@ -21,7 +20,7 @@ func (w warning) Error() string { return string(w) }
 // runDoctor checks git, the state dir, the default profile binary and the
 // installed skill; it prints one line per check and returns 1 if any check
 // fails. Warnings are printed but do not fail.
-func runDoctor(stdout io.Writer, profiles map[string]runner.Profile) int {
+func runDoctor(stdout io.Writer, cfg config.Config) int {
 	checks := []struct {
 		name  string
 		check func() (string, error)
@@ -48,7 +47,7 @@ func runDoctor(stdout io.Writer, profiles map[string]runner.Profile) int {
 		{
 			name: "default profile",
 			check: func() (string, error) {
-				profile, err := config.Lookup(profiles, config.DefaultProfile)
+				profile, err := config.Lookup(cfg.Profiles, cfg.Default)
 				if err != nil {
 					return "", err
 				}

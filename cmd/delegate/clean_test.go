@@ -34,7 +34,7 @@ func TestClean_PreviewsWithoutYes(t *testing.T) {
 	worktree, logDir := oldRunState(t)
 	var stdout, stderr bytes.Buffer
 
-	code := runCommands(t.Context(), []string{"clean", "--logs"}, &stdout, &stderr, nil)
+	code := runCommands(t.Context(), []string{"clean", "--logs"}, &stdout, &stderr, withProfiles(nil))
 
 	require.Equal(t, 0, code, "stderr: %s", stderr.String())
 	out := stdout.String()
@@ -49,7 +49,7 @@ func TestClean_YesRemovesWorktreeButKeepsLogsUnlessAsked(t *testing.T) {
 	worktree, logDir := oldRunState(t)
 	var stdout, stderr bytes.Buffer
 
-	code := runCommands(t.Context(), []string{"clean", "--yes"}, &stdout, &stderr, nil)
+	code := runCommands(t.Context(), []string{"clean", "--yes"}, &stdout, &stderr, withProfiles(nil))
 
 	require.Equal(t, 0, code, "stderr: %s", stderr.String())
 	assert.Contains(t, stdout.String(), "removed worktree "+oldRunID)
@@ -61,7 +61,7 @@ func TestClean_YesWithLogsRemovesLogsToo(t *testing.T) {
 	_, logDir := oldRunState(t)
 	var stdout, stderr bytes.Buffer
 
-	code := runCommands(t.Context(), []string{"clean", "--yes", "--logs"}, &stdout, &stderr, nil)
+	code := runCommands(t.Context(), []string{"clean", "--yes", "--logs"}, &stdout, &stderr, withProfiles(nil))
 
 	require.Equal(t, 0, code, "stderr: %s", stderr.String())
 	assert.NoDirExists(t, logDir)
@@ -72,7 +72,7 @@ func TestClean_RecentRunsAreLeftAlone(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 
 	// 2020 is younger than 100 years.
-	code := runCommands(t.Context(), []string{"clean", "--yes", "--days", "36500"}, &stdout, &stderr, nil)
+	code := runCommands(t.Context(), []string{"clean", "--yes", "--days", "36500"}, &stdout, &stderr, withProfiles(nil))
 
 	require.Equal(t, 0, code)
 	assert.Contains(t, stdout.String(), "nothing to clean")

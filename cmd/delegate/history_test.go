@@ -16,13 +16,13 @@ func TestReviewThenStats(t *testing.T) {
 	_, res := runDelegate(t, fakeWorker("echo done"))
 
 	var stdout, stderr bytes.Buffer
-	code := runCommands(t.Context(), []string{"review", res.RunID, "accepted", "clean", "diff"}, &stdout, &stderr, nil)
+	code := runCommands(t.Context(), []string{"review", res.RunID, "accepted", "clean", "diff"}, &stdout, &stderr, withProfiles(nil))
 	require.Equal(t, 0, code, "stderr: %s", stderr.String())
 	assert.Contains(t, stdout.String(), "accepted")
 	assert.FileExists(t, filepath.Join(res.LogDir, "review.json"))
 
 	stdout.Reset()
-	code = runCommands(t.Context(), []string{"stats"}, &stdout, &stderr, nil)
+	code = runCommands(t.Context(), []string{"stats"}, &stdout, &stderr, withProfiles(nil))
 	require.Equal(t, 0, code, "stderr: %s", stderr.String())
 	out := stdout.String()
 	assert.Contains(t, out, "PROFILE")
@@ -33,8 +33,8 @@ func TestReview_RejectsBadInput(t *testing.T) {
 	t.Setenv("XDG_STATE_HOME", t.TempDir())
 	var stdout, stderr bytes.Buffer
 
-	assert.Equal(t, 2, runCommands(t.Context(), []string{"review", "only-id"}, &stdout, &stderr, nil), "missing verdict is a usage error")
-	assert.Equal(t, 1, runCommands(t.Context(), []string{"review", "nope", "accepted"}, &stdout, &stderr, nil))
+	assert.Equal(t, 2, runCommands(t.Context(), []string{"review", "only-id"}, &stdout, &stderr, withProfiles(nil)), "missing verdict is a usage error")
+	assert.Equal(t, 1, runCommands(t.Context(), []string{"review", "nope", "accepted"}, &stdout, &stderr, withProfiles(nil)))
 	assert.Contains(t, stderr.String(), `no run "nope"`)
 }
 
@@ -44,7 +44,7 @@ func TestStats_ReportsSkippedRunDirs(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Join(home, "delegate", "runs", "broken"), 0o700))
 	var stdout, stderr bytes.Buffer
 
-	code := runCommands(t.Context(), []string{"stats"}, &stdout, &stderr, nil)
+	code := runCommands(t.Context(), []string{"stats"}, &stdout, &stderr, withProfiles(nil))
 
 	assert.Equal(t, 0, code)
 	assert.Contains(t, stdout.String(), "skipped 1 run dir(s) without a readable result.json: broken")
