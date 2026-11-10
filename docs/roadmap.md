@@ -256,7 +256,10 @@ parsing markdown can't fail.
 
 State 2026-11-10: usage done. Profiles carry a `Parse` func
 (`runner.ParseClaudeJSON` / `ParseCursorJSON`); the Cursor shape is from a real
-run, the Claude shape from the 2026-10-23 recording (not re-run live yet).
+run, the Claude shape re-checked live on 2026-11-10 from a plain terminal
+(`result`, `total_cost_usd` 0.0111, `usage.input_tokens` 2 for a haiku
+"reply ok"; Claude Code's MCP-policy warnings go to stderr, so stdout stays
+valid JSON).
 Open: `delegate review` and `delegate stats`.
 
 Record what each run cost and whether its result was accepted, so the choice
