@@ -26,14 +26,16 @@ func Builtin() map[string]runner.Profile {
 			Command: "cursor-agent",
 			// No --force: org-managed Cursor accounts can disable it ("Run Everything"),
 			// and print mode already allows file edits without it.
-			Args:    []string{"-p", "--trust", "--output-format", "text", "{prompt}"},
+			Args:    []string{"-p", "--trust", "--output-format", "json", "{prompt}"},
 			Timeout: defaultTimeout,
+			Parse:   runner.ParseCursorJSON,
 		},
 		"claude-sonnet": {
 			Name:    "claude-sonnet",
 			Command: "claude",
 			Args:    claudeArgs("sonnet"),
 			Timeout: defaultTimeout,
+			Parse:   runner.ParseClaudeJSON,
 		},
 		// For fully specified, mechanical work: renames, sweeps, exact edits.
 		"claude-haiku": {
@@ -41,6 +43,7 @@ func Builtin() map[string]runner.Profile {
 			Command: "claude",
 			Args:    claudeArgs("haiku"),
 			Timeout: defaultTimeout,
+			Parse:   runner.ParseClaudeJSON,
 		},
 	}
 }
@@ -69,7 +72,7 @@ var claudeAllowedTools = []string{
 // settings still apply. Not --bare: it also skips OAuth and keychain auth.
 func claudeArgs(model string) []string {
 	args := []string{
-		"-p", "--model", model, "--permission-mode", "acceptEdits",
+		"-p", "--model", model, "--permission-mode", "acceptEdits", "--output-format", "json",
 		"--setting-sources", "project", "--strict-mcp-config",
 		"--allowedTools",
 	}

@@ -46,7 +46,7 @@ default_profile: cursor
 profiles:
   cursor:
     command: cursor-agent
-    args: ["-p", "--trust", "--output-format", "text", "{prompt}"]
+    args: ["-p", "--trust", "--output-format", "json", "{prompt}"]   # parsed: reply + token usage
     timeout: 30m
   claude-sonnet:
     command: claude
@@ -86,6 +86,7 @@ for prompts too large for argv.
   "out_of_scope": ["only changed files the plan's # Files section does not allow"],
   "diffstat": "3 files changed, 40 insertions(+), 2 deletions(-)",
   "summary": "worker's own summary, extracted from its output",
+  "usage": {"input_tokens": 120, "output_tokens": 45, "cache_read_tokens": 9000, "cache_write_tokens": 300, "cost_usd": 0.0123},
   "verify": [{"cmd": "go test ./...", "exit": 0, "timed_out": false, "tail": "last 30 lines"}],
   "log_dir": "~/.local/state/delegate/runs/20261013-142900-ab12",
   "question": "only when the worker asked one in a <delegate-question> block",

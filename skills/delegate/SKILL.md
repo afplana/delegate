@@ -100,6 +100,7 @@ Wait for the completion notification, then read the single JSON line:
 | `files_changed`, `diffstat` | scope check before reading any code |
 | `out_of_scope` | changed files outside the plan's `# Files`; review these first. Absent when everything is in scope or the plan had no `# Files` |
 | `summary` | the worker's own report (or the last 20 lines if it skipped the block) |
+| `usage` | worker tokens (and `cost_usd` for Claude); mention them in the report. Absent if the CLI output couldn't be parsed |
 | `verify` | per `--verify` command: `exit` and the last 30 lines in `tail` (full output in `verify-<n>.log`). Independent of `status` |
 | `log_dir` | `prompt.md`, `stdout.log`, `stderr.log`, `result.json` — read only when needed |
 

@@ -38,9 +38,20 @@ type result struct {
 	Diffstat     string         `json:"diffstat"`
 	Summary      string         `json:"summary"`
 	Question     string         `json:"question,omitempty"` // what the worker needs answered
+	Usage        *usage         `json:"usage,omitempty"`    // absent when the CLI's output could not be parsed
 	Verify       []verifyResult `json:"verify,omitempty"`
 	LogDir       string         `json:"log_dir,omitempty"`
 	Error        string         `json:"error,omitempty"`
+}
+
+// usage is what the worker consumed. CostUSD is absent for CLIs that do not
+// report it (Cursor).
+type usage struct {
+	InputTokens      int64    `json:"input_tokens"`
+	OutputTokens     int64    `json:"output_tokens"`
+	CacheReadTokens  int64    `json:"cache_read_tokens"`
+	CacheWriteTokens int64    `json:"cache_write_tokens"`
+	CostUSD          *float64 `json:"cost_usd,omitempty"`
 }
 
 // verifyResult is one --verify command's outcome. Full output is in
@@ -204,8 +215,23 @@ func execute(ctx context.Context, f runFlags, profiles map[string]runner.Profile
 	}
 
 	res.ExitCode = out.ExitCode
-	res.Summary = runner.ExtractSummary(out.Output)
-	question, asked := runner.ExtractQuestion(out.Output)
+	reply := out.Output
+	if profile.Parse != nil {
+		// A parse failure is not delegate's failure: a worker that crashed
+		// early prints plain text, which is still the best reply there is.
+		if text, u, err := profile.Parse(out.Output); err == nil {
+			reply = text
+			res.Usage = &usage{
+				InputTokens:      u.InputTokens,
+				OutputTokens:     u.OutputTokens,
+				CacheReadTokens:  u.CacheReadTokens,
+				CacheWriteTokens: u.CacheWriteTokens,
+				CostUSD:          u.CostUSD,
+			}
+		}
+	}
+	res.Summary = runner.ExtractSummary(reply)
+	question, asked := runner.ExtractQuestion(reply)
 	res.Question = question
 	res.Status = status(out, asked)
 	res.DurationMS = time.Since(start).Milliseconds()

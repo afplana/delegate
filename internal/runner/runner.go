@@ -24,6 +24,9 @@ type Profile struct {
 	Args []string
 	// Timeout stops the command after this long. Zero means no limit.
 	Timeout time.Duration
+	// Parse reads the reply and usage out of stdout. Nil means stdout is
+	// the plain-text reply and usage is unknown.
+	Parse ParseFunc
 }
 
 // Task is the work handed to the worker.
