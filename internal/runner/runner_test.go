@@ -112,3 +112,13 @@ func TestRun_TimeoutAlsoStopsWorkerChildProcesses(t *testing.T) {
 	assert.Less(t, elapsed, 2*time.Second, "child processes should be stopped with the worker")
 	assert.NotContains(t, result.Output, "still running")
 }
+
+func TestRun_PassesExtraEnvToTheWorker(t *testing.T) {
+	// delegate marks its worker with DELEGATE_RUN_ID so a nested run can refuse.
+	profile := runner.Profile{Name: "env", Command: "sh", Args: []string{"-c", "echo $DELEGATE_RUN_ID; echo ${HOME:+home-kept}"}}
+
+	got, err := runner.Run(t.Context(), profile, runner.Task{Dir: t.TempDir(), Env: []string{"DELEGATE_RUN_ID=run-1"}})
+
+	require.NoError(t, err)
+	assert.Equal(t, "run-1\nhome-kept\n", got.Output, "extra vars are added, the parent environment stays")
+}

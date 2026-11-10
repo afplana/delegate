@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"syscall"
@@ -30,6 +31,8 @@ type Task struct {
 	Prompt string
 	// Dir is the working directory the command runs in.
 	Dir string
+	// Env holds extra "KEY=value" variables, added to the parent environment.
+	Env []string
 }
 
 // Result is what happened when the task ran.
@@ -58,6 +61,9 @@ func Run(ctx context.Context, profile Profile, task Task) (Result, error) {
 
 	cmd := exec.CommandContext(ctx, profile.Command, args...) //nolint:gosec // G204: command comes from the user's own config
 	cmd.Dir = task.Dir
+	if len(task.Env) > 0 {
+		cmd.Env = append(os.Environ(), task.Env...)
+	}
 	// Run the worker in its own process group and kill the whole group on
 	// timeout or cancel: agent CLIs spawn children that would otherwise keep
 	// running and keep stdout open. WaitDelay caps the wait for those pipes.

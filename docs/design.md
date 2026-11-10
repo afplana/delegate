@@ -124,6 +124,10 @@ the worker's timeout. `timed_out` is omitted when false. It never changes
 By default each run gets its own git worktree on branch `delegate/<run-id>`.
 `--in-place` runs in the given directory instead. Never runs on `main`/`master` in place.
 
+The worker's environment gets `DELEGATE_RUN_ID=<run-id>`. `delegate run` refuses to
+start when that variable is set and non-empty (`status: error`,
+`error: "nested delegate run inside run <id>"`), so a worker can never start a worker.
+
 ## Packages
 
 | Package | Responsibility | Test seam |
