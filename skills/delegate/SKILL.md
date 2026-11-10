@@ -71,8 +71,8 @@ One or two sentences: the behaviour that must exist when done.
 always fill `# Files` when you know the scope.
 
 Keep it as short as it can be while staying unambiguous. Ambiguity is the main
-reason workers drift. Do not add the summary-block instruction: `delegate`
-appends it.
+reason workers drift. Do not add a worker contract ("don't ask questions, stay
+in the worktree") or the summary-block instruction: `delegate` adds both.
 
 ## 2. Delegate
 

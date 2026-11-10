@@ -63,8 +63,16 @@ var claudeAllowedTools = []string{
 	"Bash(which *)",
 }
 
+// claudeArgs builds the args for a headless Claude worker on model.
+// --setting-sources project and --strict-mcp-config keep the user's personal
+// setup (output style, hooks, MCP servers) out of the worker; the repo's own
+// settings still apply. Not --bare: it also skips OAuth and keychain auth.
 func claudeArgs(model string) []string {
-	args := []string{"-p", "--model", model, "--permission-mode", "acceptEdits", "--allowedTools"}
+	args := []string{
+		"-p", "--model", model, "--permission-mode", "acceptEdits",
+		"--setting-sources", "project", "--strict-mcp-config",
+		"--allowedTools",
+	}
 	args = append(args, claudeAllowedTools...)
 	// --allowedTools is variadic: without "--" it would swallow the prompt.
 	return append(args, "--", "{prompt}")

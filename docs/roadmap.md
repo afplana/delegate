@@ -49,7 +49,7 @@ Every card ends the same way: `make check` green, then a commit.
 | `claude-haiku` profile | ✅ card 22 |
 | Skill: plans give paths and line ranges, not pasted code | ✅ card 23 |
 | `repo` and `started_at` in `result.json` | ✅ card 24 |
-| Worker isolated from the user's Claude setup | ⬜ card 25 |
+| Worker isolated from the user's Claude setup | 🟡 card 25 (steps 1–2 done; probe and step 3 open) |
 | `needs_input` status when the worker hits an ambiguity | ⬜ card 26 |
 
 ## v1 slices (done)
@@ -304,7 +304,14 @@ Today a past run can't be traced back to its repo or start time
 Merged in from the unmerged `docs/roadmap-multi-agent-cards` branch (`fcba3bb`).
 Its `--verify`, cost and `claude-haiku` cards are covered by 18, 21 and 22.
 
-### 25 ⬜ Isolate the worker from the user's setup (about 20 minutes)
+### 25 🟡 Isolate the worker from the user's setup (about 20 minutes)
+
+State 2026-11-10: step 1 done. Step 2 done differently: the contract is
+`runner.WorkerContract`, prepended to **every** prompt instead of Claude's
+`--append-system-prompt`, so Cursor gets it too and delegate stays
+CLI-agnostic. Open: the live probe (headless `claude -p` fails
+`OAuth session expired` from the Claude Code desktop shell) and step 3
+(needs card 17).
 
 The `claude-sonnet` worker loads the user's whole personal setup. Probe on
 2026-10-19 (Haiku answering yes/no about its own context, run from this repo):

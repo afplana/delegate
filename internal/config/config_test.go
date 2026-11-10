@@ -101,6 +101,24 @@ func TestBuiltin_ClaudeProfilesCanBuildAndCommitButNotPush(t *testing.T) {
 	}
 }
 
+func TestBuiltin_ClaudeProfilesIgnoreTheUsersPersonalSetup(t *testing.T) {
+	// A worker that loads the user's output style or MCP servers may leave
+	// TODO(human) gaps or stop to ask; probe on 2026-10-19 showed both load.
+	for _, tt := range claudeProfiles {
+		t.Run(tt.name, func(t *testing.T) {
+			profile, err := config.Lookup(config.Builtin(), tt.name)
+
+			require.NoError(t, err)
+			i := slices.Index(profile.Args, "--setting-sources")
+			require.NotEqual(t, -1, i, "--setting-sources must be set")
+			require.Less(t, i+1, len(profile.Args))
+			assert.Equal(t, "project", profile.Args[i+1], "user settings (output style, hooks) stay out")
+			assert.Contains(t, profile.Args, "--strict-mcp-config", "the user's MCP servers stay out")
+			assert.NotContains(t, profile.Args, "--bare", "--bare skips OAuth and keychain auth")
+		})
+	}
+}
+
 func TestBuiltin_ClaudeProfilesEndOptionsBeforePrompt(t *testing.T) {
 	// --allowedTools is variadic; without "--" it takes the prompt as a tool
 	// name and claude exits with "Input must be provided".

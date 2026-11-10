@@ -161,7 +161,7 @@ func execute(ctx context.Context, f runFlags, profiles map[string]runner.Profile
 	}
 	res.Workdir, res.Branch, res.Base = ws.Dir, ws.Branch, ws.Base
 
-	prompt := string(planText) + runner.SummaryInstruction
+	prompt := runner.WorkerContract + string(planText) + runner.SummaryInstruction
 	if err := writeLogs(logDir, map[string]string{"prompt.md": prompt}); err != nil {
 		return fail(err)
 	}

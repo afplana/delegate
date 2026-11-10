@@ -11,6 +11,15 @@ const (
 	summaryTailLines = 20
 )
 
+// WorkerContract is prepended to every task prompt, whatever the CLI: the
+// worker runs unattended, so nobody can answer a question, and its work is
+// reviewed by the planner before anything leaves the worktree.
+const WorkerContract = "You are a delegate worker: an agent running unattended on the plan below, " +
+	"in a git worktree made for this task. Nobody will answer questions, so never ask one or wait for input. " +
+	"Do what the plan makes unambiguous; when a choice that matters is unclear, do not guess: " +
+	"leave it undone and name it in your report. Stay inside the current directory. " +
+	"Do not push, and do not start another delegate run.\n\n"
+
 // SummaryInstruction is appended to every task prompt so the worker ends its
 // output with a block that ExtractSummary can find.
 const SummaryInstruction = "\n\nWhen you are done, end your reply with a short report for a reviewer " +
