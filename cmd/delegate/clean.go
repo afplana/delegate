@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -66,7 +67,12 @@ func runClean(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 		case !*yes:
 			fmt.Fprintf(stdout, "would remove %s\n", label)
 		default:
-			if err := workspace.RemoveStale(ctx, s); err != nil {
+			err := workspace.RemoveStale(ctx, s)
+			if errors.Is(err, workspace.ErrBranchKept) {
+				fmt.Fprintf(stdout, "removed %s; %v (if its work landed by cherry-pick, `git cherry -v HEAD %s` shows every line with -)\n", label, err, s.Branch)
+				continue
+			}
+			if err != nil {
 				fmt.Fprintf(stdout, "kept   worktree %s: %v\n", s.RunID, err)
 				continue
 			}

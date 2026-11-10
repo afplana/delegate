@@ -81,6 +81,10 @@ func (s *Stale) locate(ctx context.Context) error {
 	return nil
 }
 
+// ErrBranchKept means RemoveStale removed the worktree but git refused to
+// delete its branch (not fully merged into the repo's HEAD).
+var ErrBranchKept = errors.New("kept branch")
+
 // RemoveStale removes the worktree and then its branch, never forcing either:
 // git refuses a worktree with uncommitted changes and an unmerged branch, and
 // both are kept. The returned error says what was kept and why.
@@ -92,7 +96,9 @@ func RemoveStale(ctx context.Context, s Stale) error {
 		return fmt.Errorf("kept worktree: %w", err)
 	}
 	if _, err := git(ctx, s.Repo, "branch", "-d", s.Branch); err != nil {
-		return fmt.Errorf("removed worktree, kept branch %s: %w", s.Branch, err)
+		// git adds hint lines about -D; the first line says why.
+		reason, _, _ := strings.Cut(err.Error(), "\n")
+		return fmt.Errorf("%w %s: %s", ErrBranchKept, s.Branch, reason)
 	}
 	return nil
 }
