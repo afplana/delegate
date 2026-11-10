@@ -244,7 +244,8 @@ make install # build and install with the current commit as version
 ```
 
 Design and contracts: [docs/design.md](docs/design.md). What is next, as pick-up
-cards: [docs/roadmap.md](docs/roadmap.md).
+cards: [docs/roadmap.md](docs/roadmap.md). Conventions and the rules that must not
+regress, for people and coding agents: [AGENTS.md](AGENTS.md).
 
 ## License
 

@@ -186,13 +186,22 @@ non-empty in the source repo.
 
 - Files: `internal/workspace/workspace.go` (`Workspace.Dirty`), `cmd/delegate/run.go`
 
-### 16 ⬜ Public release (about 1 hour)
+### 16 🟡 Public release (about 1 hour)
 
-- `AGENTS.md`, plus a `CLAUDE.md` containing `@AGENTS.md`.
-- README: install, usage, JSON example, skill install.
-- `gitleaks git` over the full history; grep for company names, internal hosts and ticket keys.
-- Tag `v0.1.0`; optionally add goreleaser for binaries.
-- Flip the repo to public.
+State 2026-11-10: the repo was already public, so the history check came first.
+
+- ✅ `AGENTS.md`, plus a `CLAUDE.md` containing `@AGENTS.md`.
+- ✅ README: install, usage, JSON example, skill install (already there; now links AGENTS.md).
+- ✅ `gitleaks git` over all 54 commits: no leaks. History grep for company names,
+  internal hosts, ticket keys and local paths: only commit `d1d10fb` (lint/pre-commit
+  comments naming two internal linters and a private golangci-lint fork), already
+  removed from the tree by `7bd6ac7`. Left in history: rewriting a public history
+  needs a force push and the content is not secret.
+- ✅ `delegate version` reports the tag for `go install ...@v0.1.0` (no ldflags
+  there; falls back to the module version in the build info).
+- ⬜ Tag `v0.1.0` (after this merges). goreleaser skipped: `go install` covers
+  the Go audience; add it when someone asks for binaries.
+- ✅ Repo visibility: already public.
 
 ### 17 ✅ Recursion guard (about 30 minutes)
 
