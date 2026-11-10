@@ -51,9 +51,9 @@ func runDoctor(stdout io.Writer, cfg config.Config) int {
 				if err != nil {
 					return "", err
 				}
-				path, err := exec.LookPath(profile.Command)
+				path, err := findCommand(cfg, profile, true)
 				if err != nil {
-					return "", fmt.Errorf("profile %q: command %q not on PATH: %w", profile.Name, profile.Command, err)
+					return "", err
 				}
 				return fmt.Sprintf("%s: %s", profile.Name, path), nil
 			},

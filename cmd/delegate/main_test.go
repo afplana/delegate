@@ -332,3 +332,51 @@ func TestRun_RequiresTask(t *testing.T) {
 	assert.Contains(t, stderr.String(), "--task is required")
 	assert.Empty(t, stdout.String())
 }
+
+func TestRun_MissingCommandNamesTheInstalledProfiles(t *testing.T) {
+	// Nobody has every agent CLI; fail before any worktree exists and say what would work.
+	ghost := runner.Profile{Name: "ghost", Command: "delegate-no-such-cli", Args: []string{"{prompt}"}}
+	tests := []struct {
+		name     string
+		cfg      config.Config
+		repoYAML string
+		want     []string
+	}{
+		{
+			name: "the default",
+			cfg:  config.Config{Default: "ghost", Profiles: map[string]runner.Profile{"ghost": ghost, "fake": fakeWorker("true")["fake"]}},
+			want: []string{`default profile "ghost": command "delegate-no-such-cli" not on PATH`, "installed profiles: fake", "pass --profile <name> or set default_profile in"},
+		},
+		{
+			name: "nothing installed",
+			cfg:  config.Config{Default: "ghost", Profiles: map[string]runner.Profile{"ghost": ghost}},
+			want: []string{`default profile "ghost"`, "no profile's command is on PATH", "add a profile in"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res := runInRepoWithConfig(t, tt.cfg, "")
+
+			assert.Equal(t, "error", res.Status)
+			for _, want := range tt.want {
+				assert.Contains(t, res.Error, want)
+			}
+			assert.Empty(t, res.Workdir, "no worktree for a worker that cannot start")
+		})
+	}
+}
+
+func TestRun_MissingCommandOfAnExplicitProfile(t *testing.T) {
+	// runDelegate passes --profile fake; here "fake" is the missing one.
+	profiles := map[string]runner.Profile{
+		"fake": {Name: "fake", Command: "delegate-no-such-cli", Args: []string{"{prompt}"}},
+		"ok":   fakeWorker("true")["fake"],
+	}
+
+	code, res := runDelegate(t, profiles)
+
+	assert.Equal(t, 1, code)
+	assert.Contains(t, res.Error, `profile "fake": command "delegate-no-such-cli" not on PATH`)
+	assert.Contains(t, res.Error, "installed profiles: ok; pass --profile <name>")
+	assert.NotContains(t, res.Error, "default_profile", "the user chose it; the default is not the issue")
+}

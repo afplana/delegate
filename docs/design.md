@@ -142,6 +142,10 @@ the worker's timeout. `timed_out` is omitted when false. It never changes
 - A plan without non-empty `Goal`, `Steps` and `Acceptance criteria` sections is refused
   before any worktree exists: `status: error`, `error: "plan missing sections: ..."`
   (`internal/plan`).
+- A profile whose command is not on PATH is refused the same way, before any worktree exists.
+  The error names the profiles whose commands are installed and how to pick one
+  (`--profile`, or `default_profile` when it was the default); `doctor` prints the same.
+  delegate never switches profile itself: cost, model and permissions differ.
 
 ## Isolation
 

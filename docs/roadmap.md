@@ -388,6 +388,19 @@ Workers must not decide on ambiguity. Today `SummaryInstruction` only asks for
 - Idioms: `strings.Cut`, table-driven tests with edge cases (no block, empty
   block, both summary and question).
 
+## Usability cards
+
+### 27 ✅ Name the installed profiles when a CLI is missing (about 20 minutes)
+
+Done 2026-11-10. Nobody has every agent CLI (work laptop: Claude and Cursor
+only). When the chosen or default profile's command is not on PATH, `run`
+fails before creating a worktree, and both `run` and `doctor` name the
+profiles whose binaries are installed, plus how to pick one. Rejected:
+switching profile automatically (cost, model and permissions differ, and the
+result would come from a worker nobody chose) and an interactive
+`delegate init` (the planner runs delegate non-interactively). The skill asks
+the user to choose from the installed list.
+
 ## Known limitations (v1)
 
 - The worker runs with the permissions its CLI grants in print mode. Cursor
