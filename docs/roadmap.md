@@ -50,7 +50,7 @@ Every card ends the same way: `make check` green, then a commit.
 | Skill: plans give paths and line ranges, not pasted code | ✅ card 23 |
 | `repo` and `started_at` in `result.json` | ✅ card 24 |
 | Worker isolated from the user's Claude setup | 🟡 card 25 (steps 1–2 done and probed; step 3 needs card 17) |
-| `needs_input` status when the worker hits an ambiguity | ⬜ card 26 |
+| `needs_input` status when the worker hits an ambiguity | ✅ card 26 |
 
 ## v1 slices (done)
 
@@ -338,7 +338,7 @@ rule like "ask which pairing mode" can make it stop and ask. Fix:
 - Verify: rerun the probe above; expect `yes no no` (then `no no no` after step 3).
 - Cursor equivalent: UNVERIFIED — check what `cursor-agent -p` loads.
 
-### 26 ⬜ `needs_input` status (about 30 minutes)
+### 26 ✅ `needs_input` status (about 30 minutes)
 
 Workers must not decide on ambiguity. Today `SummaryInstruction` only asks for
 "anything uncertain" in free text (`summary.go`), easy for the planner to miss.

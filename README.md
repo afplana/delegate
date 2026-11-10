@@ -126,6 +126,7 @@ Output (one line, pretty-printed here):
 | `status` | Meaning | Exit code |
 |---|---|---|
 | `ok` | worker exited 0 | 0 |
+| `needs_input` | worker exited 0 but asked a question in a `<delegate-question>` block (see `question`); the parts it was unsure about are not done | 1 |
 | `failed` | worker exited non-zero (partial work is still in the worktree) | 1 |
 | `timeout` | worker was stopped, including its child processes | 1 |
 | `error` | delegate itself could not run (see `error`) | 1 |

@@ -88,6 +88,7 @@ for prompts too large for argv.
   "summary": "worker's own summary, extracted from its output",
   "verify": [{"cmd": "go test ./...", "exit": 0, "timed_out": false, "tail": "last 30 lines"}],
   "log_dir": "~/.local/state/delegate/runs/20261013-142900-ab12",
+  "question": "only when the worker asked one in a <delegate-question> block",
   "error": "only when status is error"
 }
 ```
@@ -111,6 +112,9 @@ the worker's timeout. `timed_out` is omitted when false. It never changes
 - `error` from `Run` = delegate could not do its job (binary missing, bad config, git failure).
   The CLI reports it as `status: error` with an `error` message, so the caller always gets JSON.
 - A worker that runs and exits non-zero is **not** an error: it is a `Result` with `status: failed`.
+- A worker that exits 0 but writes a non-empty `<delegate-question>` block gets
+  `status: needs_input` and `question`. `failed` and `timeout` win over a question
+  (the question is still reported).
 - A plan without non-empty `Goal`, `Steps` and `Acceptance criteria` sections is refused
   before any worktree exists: `status: error`, `error: "plan missing sections: ..."`
   (`internal/plan`).
