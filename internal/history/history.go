@@ -169,3 +169,31 @@ func median(values []int64) int64 {
 	}
 	return (sorted[mid-1] + sorted[mid]) / 2
 }
+
+// runIDLayout is the timestamp prefix of every run id.
+const runIDLayout = "20060102-150405"
+
+// OlderThan returns the run dirs under runsDir whose run id says they started
+// before cutoff. Dirs whose name is not a run id are never returned, so a
+// cleanup built on this cannot delete anything delegate did not create.
+func OlderThan(runsDir string, cutoff time.Time) ([]string, error) {
+	entries, err := os.ReadDir(runsDir)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read runs: %w", err)
+	}
+	var old []string
+	for _, entry := range entries {
+		name := entry.Name()
+		if !entry.IsDir() || len(name) < len(runIDLayout) {
+			continue
+		}
+		started, err := time.Parse(runIDLayout, name[:len(runIDLayout)])
+		if err == nil && started.Before(cutoff) {
+			old = append(old, name)
+		}
+	}
+	return old, nil
+}

@@ -188,6 +188,7 @@ git worktree remove <workdir> && git branch -d <branch>
 | `delegate run` | run one task with one profile (above) |
 | `delegate review <run-id> accepted\|needs-fixes\|failed [note]` | record how the review of a run went (`runs/<id>/review.json`; a later verdict replaces it) |
 | `delegate stats` | one row per profile: runs per status, accepted/reviewed, median tokens, total cost; lists run dirs it could not read |
+| `delegate clean [--days 7] [--logs] [--yes]` | preview, then (with `--yes`) remove worktrees and merged `delegate/*` branches of runs older than N days; never forces, so worktrees with changes and unmerged branches are kept. `--logs` also removes old run logs (which `stats` reads) |
 | `delegate profiles` | list profiles and whether each binary is on `PATH` |
 | `delegate doctor` | check git, the state dir, the default profile's binary, and warn if the installed skill is stale |
 | `delegate skill install [--force]` | copy the embedded Claude Code skill into `~/.claude/skills/delegate/` |

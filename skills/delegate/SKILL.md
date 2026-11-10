@@ -177,6 +177,8 @@ Record the outcome first, so `delegate stats` can compare profiles:
   landed with `git -C <repo> cherry -v HEAD <branch>`: every line starting
   with `-` is already in. Only then use `-D`, or ask the user to run it if a
   hook blocks force-deletes.
+- **Old runs** pile up as worktrees (hundreds of MB). Suggest
+  `delegate clean` (a preview) when the user asks; only run `--yes` on their OK.
 - **Another round**: write a new plan containing only the findings to fix, and
   run `delegate run` again with `--repo <workdir> --in-place`, so it builds on
   the same branch.
