@@ -147,7 +147,13 @@ macOS caps argv at about 1 MB. Add `PromptVia string` ("arg" or "stdin") to
 - Files: `internal/runner/runner.go`, `runner_test.go`
 - Test: profile `cat` with `PromptVia: "stdin"` returns the prompt as `Output`.
 
-### 13 ⬜ `delegate clean` (about 45 minutes)
+### 13 ✅ `delegate clean` (about 45 minutes)
+
+Done 2026-11-10, deliberately safer than sketched: `git worktree remove`
+without `--force` and `git branch -d`, never `-D` (an unmerged `delegate/*`
+branch may hold unaccepted work); logs only with `--logs`, because `stats`
+reads them; worktrees whose source repo is gone are reported, not deleted.
+First real preview: 2 removable (183 MB), 1 orphan, 14 old log dirs.
 
 Remove worktrees, `delegate/*` branches and run logs older than N days. This is
 destructive, so it shows what it would remove and needs `--yes` to act.

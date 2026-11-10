@@ -113,3 +113,15 @@ func TestSummarize(t *testing.T) {
 		Reviewed: 2, Accepted: 1, WithUsage: 2, MedianInput: 200, MedianOutput: 20,
 	}, got[1])
 }
+
+func TestOlderThan_ListsRunDirsStartedBeforeTheCutoff(t *testing.T) {
+	runs := t.TempDir()
+	for _, id := range []string{"20200101-000000-aaaa", "20991231-000000-bbbb", "not-a-run-id"} {
+		require.NoError(t, os.MkdirAll(filepath.Join(runs, id), 0o700))
+	}
+
+	got, err := history.OlderThan(runs, time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"20200101-000000-aaaa"}, got, "names that are not run ids are never touched")
+}
