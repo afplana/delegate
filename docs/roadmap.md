@@ -34,7 +34,7 @@ Every card ends the same way: `make check` green, then a commit.
 | Claude Code skill: plan → delegate → review → report, one round | ✅ v1 (in repo, not installed) |
 | `delegate profiles` | ✅ |
 | `delegate doctor` | ✅ |
-| `delegate skill install` | ⬜ card 9c |
+| `delegate skill install` | ✅ card 9c |
 | YAML config merged over the built-ins | ⬜ card 11 |
 | Large prompts via stdin | ⬜ card 12 |
 | Clean up old worktrees and runs | ⬜ card 13 |
@@ -84,7 +84,7 @@ Answer each in one or two sentences, out loud or in chat:
 ## Next: first real use (about 15 minutes)
 
 1. `make install`, then check `delegate version` works from any directory.
-2. Install the skill as a **copy** (never a symlink into this repo): `make install-skill`.
+2. Install the skill as a **copy** (never a symlink into this repo): `delegate skill install`.
 3. In a real repo on a feature branch with a clean tree, ask Claude Code: `delegate <small task>`.
 4. Note what felt wrong; each issue becomes a card below.
 
@@ -107,7 +107,11 @@ profile's binary exists. Print one line per check; exit 1 if any check fails.
 - Files: `cmd/delegate/doctor.go`, `cmd/delegate/doctor_test.go`
 - Idioms: a slice of `struct{ name string; check func() error }`, `errors.Join`.
 
-### 9c ⬜ `delegate skill install` (about 30 minutes)
+### 9c ✅ `delegate skill install` (about 30 minutes)
+
+Done 2026-11-10. A `.installed.sha256` next to `SKILL.md` records what
+delegate wrote, so an untouched copy upgrades and edited or foreign copies
+need `--force`. `doctor` warns (exit 0) on a missing or stale skill.
 
 Embed `skills/delegate/SKILL.md` into the binary and copy it to
 `~/.claude/skills/delegate/SKILL.md`. Copy, never symlink. Refuse to overwrite a

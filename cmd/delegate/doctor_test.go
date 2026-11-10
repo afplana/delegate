@@ -3,11 +3,13 @@ package main
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/afplana/delegate/internal/config"
 	"github.com/afplana/delegate/internal/runner"
+	"github.com/afplana/delegate/skills"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,7 +40,7 @@ func TestDoctor(t *testing.T) {
 			},
 			wantCode: 0,
 			assertOut: func(t *testing.T, lines []string) {
-				require.Len(t, lines, 3)
+				require.Len(t, lines, 4)
 				for _, line := range lines {
 					assert.True(t, strings.HasPrefix(line, "ok"), "line %q should start with ok", line)
 				}
@@ -51,7 +53,7 @@ func TestDoctor(t *testing.T) {
 			},
 			wantCode: 1,
 			assertOut: func(t *testing.T, lines []string) {
-				require.Len(t, lines, 3)
+				require.Len(t, lines, 4)
 				assert.True(t, strings.HasPrefix(lineFor(lines, "git"), "ok"))
 				assert.True(t, strings.HasPrefix(lineFor(lines, "state dir"), "ok"))
 				def := lineFor(lines, "default profile")
@@ -64,12 +66,34 @@ func TestDoctor(t *testing.T) {
 			profiles: map[string]runner.Profile{},
 			wantCode: 1,
 			assertOut: func(t *testing.T, lines []string) {
-				require.Len(t, lines, 3)
+				require.Len(t, lines, 4)
 				assert.True(t, strings.HasPrefix(lineFor(lines, "git"), "ok"))
 				assert.True(t, strings.HasPrefix(lineFor(lines, "state dir"), "ok"))
 				def := lineFor(lines, "default profile")
 				assert.True(t, strings.HasPrefix(def, "FAIL"))
 				assert.Contains(t, def, "unknown profile")
+			},
+		},
+		{
+			// A stale skill still works, so it warns without failing doctor.
+			name: "installed skill differs from the binary's",
+			profiles: map[string]runner.Profile{
+				config.DefaultProfile: {Name: config.DefaultProfile, Command: "sh"},
+			},
+			setup: func(t *testing.T) {
+				t.Setenv("XDG_STATE_HOME", t.TempDir())
+				config := t.TempDir()
+				t.Setenv("CLAUDE_CONFIG_DIR", config)
+				dir := filepath.Join(config, "skills", "delegate")
+				require.NoError(t, os.MkdirAll(dir, 0o700))
+				require.NoError(t, os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte("old\n"), 0o600))
+			},
+			wantCode: 0,
+			assertOut: func(t *testing.T, lines []string) {
+				require.Len(t, lines, 4)
+				line := lineFor(lines, "skill")
+				assert.True(t, strings.HasPrefix(line, "WARN"), "got %q", line)
+				assert.Contains(t, line, "delegate skill install")
 			},
 		},
 		{
@@ -87,7 +111,7 @@ func TestDoctor(t *testing.T) {
 			},
 			wantCode: 1,
 			assertOut: func(t *testing.T, lines []string) {
-				require.Len(t, lines, 3)
+				require.Len(t, lines, 4)
 				assert.True(t, strings.HasPrefix(lineFor(lines, "state dir"), "FAIL"))
 			},
 		},
@@ -95,6 +119,10 @@ func TestDoctor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Every case starts with this binary's skill installed.
+			t.Setenv("CLAUDE_CONFIG_DIR", t.TempDir())
+			_, err := skills.Install(skillDir(), false)
+			require.NoError(t, err)
 			if tt.setup != nil {
 				tt.setup(t)
 			} else {

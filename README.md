@@ -47,23 +47,30 @@ delegate doctor
 echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc
 ```
 
-`delegate doctor` should print three `ok` lines:
+`delegate doctor` should print `ok` lines; the skill line warns until you run
+`delegate skill install` (below):
 
 ```
 ok    git: /usr/bin/git
 ok    state dir: /Users/you/.local/state/delegate
 ok    default profile: cursor: /Users/you/.local/bin/cursor-agent
+WARN  skill: /Users/you/.claude/skills/delegate/SKILL.md is missing or differs from this binary's; run delegate skill install
 ```
 
 ## Use it from Claude Code (recommended)
 
-Install the skill (a plain copy, so it never changes under you):
+Install the skill. The binary embeds it, so the skill always matches the
+binary you run:
 
 ```bash
-mkdir -p ~/.claude/skills/delegate
-curl -fsSL https://raw.githubusercontent.com/afplana/delegate/main/skills/delegate/SKILL.md \
-  -o ~/.claude/skills/delegate/SKILL.md
+delegate skill install
 ```
+
+It writes a plain copy (never a symlink) to `~/.claude/skills/delegate/`, or
+under `$CLAUDE_CONFIG_DIR` when set. Re-run it after upgrading delegate: an
+untouched copy is upgraded, but a copy with edits delegate didn't make (or one
+installed some other way) is left alone unless you pass `--force`.
+`delegate doctor` warns when the installed skill differs from the binary's.
 
 Then, in a repo on a feature branch with a clean working tree, ask Claude Code:
 
@@ -178,7 +185,8 @@ git worktree remove <workdir> && git branch -d <branch>
 | `delegate review <run-id> accepted\|needs-fixes\|failed [note]` | record how the review of a run went (`runs/<id>/review.json`; a later verdict replaces it) |
 | `delegate stats` | one row per profile: runs per status, accepted/reviewed, median tokens, total cost; lists run dirs it could not read |
 | `delegate profiles` | list profiles and whether each binary is on `PATH` |
-| `delegate doctor` | check git, the state dir and the default profile's binary |
+| `delegate doctor` | check git, the state dir, the default profile's binary, and warn if the installed skill is stale |
+| `delegate skill install [--force]` | copy the embedded Claude Code skill into `~/.claude/skills/delegate/` |
 | `delegate version` | print the build version |
 
 ## Profiles

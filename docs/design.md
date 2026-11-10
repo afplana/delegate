@@ -32,8 +32,8 @@ delegate review <run-id> accepted|needs-fixes|failed [note...]                  
 delegate stats                                                                            # per-profile runs, statuses, accept rate, median tokens, cost
 delegate version                                                                          # v1
 delegate profiles                                                                         # v1: list profiles and whether their binary is on PATH
-delegate doctor                                                                           # v1: check git, state dir and the default profile's binary
-delegate skill install       # later: copy the Claude Code skill into ~/.claude/skills (copy, never symlink)
+delegate doctor                                                                           # check git, state dir, default profile's binary; WARN on a stale skill
+delegate skill install [--force]                                                          # copy the embedded skill into ~/.claude/skills (copy, never symlink)
 ```
 
 Exit codes: 0 = status ok, 1 = any other status (JSON still printed), 2 = bad flags (usage on stderr).
