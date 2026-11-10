@@ -9,12 +9,12 @@ import (
 	"text/tabwriter"
 
 	"github.com/afplana/delegate/internal/config"
-	"github.com/afplana/delegate/internal/runner"
 )
 
 // listProfiles prints each profile with the path of its binary, or "missing"
 // when the binary is not on PATH. A missing binary is not a failure.
-func listProfiles(stdout io.Writer, profiles map[string]runner.Profile) int {
+func listProfiles(stdout io.Writer, cfg config.Config) int {
+	profiles := cfg.Profiles
 	w := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "PROFILE\tCOMMAND\tBINARY")
 	for _, name := range slices.Sorted(maps.Keys(profiles)) {
@@ -24,7 +24,7 @@ func listProfiles(stdout io.Writer, profiles map[string]runner.Profile) int {
 			binary = "missing"
 		}
 		label := name
-		if name == config.DefaultProfile {
+		if name == cfg.Default {
 			label += " (default)"
 		}
 		fmt.Fprintf(w, "%s\t%s\t%s\n", label, profile.Command, binary)

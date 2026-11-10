@@ -41,8 +41,19 @@ Exit codes: 0 = status ok, 1 = any other status (JSON still printed), 2 = bad fl
 
 ## Config
 
-v1 ships the `cursor` (default), `claude-sonnet` and `claude-haiku` profiles built in (`internal/config`).
-Later (roadmap card 11): `~/.config/delegate/config.yaml`, optionally overridden by `<repo>/.delegate.yaml`, merged over the built-ins.
+The `cursor` (default), `claude-sonnet` and `claude-haiku` profiles are built in (`internal/config`).
+Two optional files are merged over them, in this order:
+
+1. **User file** `$XDG_CONFIG_HOME/delegate/config.yaml` (else `~/.config/delegate/config.yaml`).
+   Trusted: may add profiles and set `command`, `args`, `timeout`, `output`, `default_profile`.
+2. **Repo file** `<repo root>/.delegate.yaml`. Not trusted to choose what runs (a cloned repo
+   could otherwise run any program): only `default_profile` and the `timeout` of existing
+   profiles. Any other key is an error naming the file and key.
+
+A file can override one field of a profile and keep the rest. Unknown keys, bad durations,
+an unknown `output`, a new profile without `command`, `args` without `{prompt}` and an unknown
+`default_profile` are errors naming the file. `output` picks the stdout parser:
+`text` (default for new profiles), `claude-json`, `cursor-json`.
 
 ```yaml
 default_profile: cursor
@@ -60,8 +71,9 @@ profiles:
            "--allowedTools", "Bash(go *)", "Bash(make *)", "Bash(git commit *)", "...",
            "--", "{prompt}"]
     timeout: 30m
-  codex:            # untested in v1
+  codex:            # untested
     command: codex
+    output: text
     args: ["exec", "--full-auto", "{prompt}"]
   gemini:           # untested in v1
     command: gemini

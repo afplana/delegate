@@ -130,7 +130,7 @@ func TestDoctor(t *testing.T) {
 			}
 
 			var stdout, stderr bytes.Buffer
-			code := runCommands(t.Context(), []string{"doctor"}, &stdout, &stderr, tt.profiles)
+			code := runCommands(t.Context(), []string{"doctor"}, &stdout, &stderr, withProfiles(tt.profiles))
 
 			assert.Equal(t, tt.wantCode, code)
 			assert.Empty(t, stderr.String())

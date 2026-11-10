@@ -35,7 +35,7 @@ Every card ends the same way: `make check` green, then a commit.
 | `delegate profiles` | ✅ |
 | `delegate doctor` | ✅ |
 | `delegate skill install` | ✅ card 9c |
-| YAML config merged over the built-ins | ⬜ card 11 |
+| YAML config merged over the built-ins | ✅ card 11 |
 | Large prompts via stdin | ⬜ card 12 |
 | Clean up old worktrees and runs | ⬜ card 13 |
 | Codex and Gemini profiles, verified | ⬜ card 14 |
@@ -126,7 +126,11 @@ changed file unless `--force` is passed.
   behind the repo (it still used `git add -A` and `branch -D`); this check
   would have caught it.
 
-### 11 ⬜ YAML config (about 1 hour)
+### 11 ✅ YAML config (about 1 hour)
+
+Done 2026-11-10 with one deliberate change: the repo file may only set
+`default_profile` and timeouts (least privilege: a cloned repo must not pick
+the executable or its args). Profiles name their parser with `output:`.
 
 Load `~/.config/delegate/config.yaml` and `<repo>/.delegate.yaml` and merge them
 over `config.Builtin()`. Format: see design.md § Config.

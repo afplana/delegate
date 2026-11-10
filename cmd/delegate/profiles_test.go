@@ -19,7 +19,7 @@ func TestProfilesListsBinaryAvailability(t *testing.T) {
 	}
 	var stdout, stderr bytes.Buffer
 
-	code := runCommands(t.Context(), []string{"profiles"}, &stdout, &stderr, profiles)
+	code := runCommands(t.Context(), []string{"profiles"}, &stdout, &stderr, withProfiles(profiles))
 
 	assert.Equal(t, 0, code)
 	assert.Empty(t, stderr.String())

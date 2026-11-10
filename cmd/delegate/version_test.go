@@ -10,7 +10,7 @@ import (
 func TestVersionPrintsBuildVersion(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 
-	code := runCommands(t.Context(), []string{"version"}, &stdout, &stderr, nil)
+	code := runCommands(t.Context(), []string{"version"}, &stdout, &stderr, withProfiles(nil))
 
 	assert.Equal(t, 0, code)
 	assert.Equal(t, "dev\n", stdout.String())

@@ -152,6 +152,22 @@ worker of its own. Your global `CLAUDE.md` can use it too, e.g. "if
 `DELEGATE_RUN_ID` is set, you are a delegate worker: skip my personal workflow
 rules".
 
+Profiles can be added or tuned in `~/.config/delegate/config.yaml`; a repo can
+set its own `default_profile` and timeouts in `.delegate.yaml`, but never what
+runs. Format and rules: [design.md § Config](docs/design.md#config).
+
+```yaml
+# ~/.config/delegate/config.yaml
+default_profile: claude-sonnet
+profiles:
+  cursor:
+    timeout: 45m          # override one field, keep the rest
+  codex:                  # add a profile
+    command: codex
+    args: ["exec", "{prompt}"]
+    output: text          # text | claude-json | cursor-json
+```
+
 Both CLIs run with `--output-format json`: delegate takes the worker's reply
 from it (for `summary` and `question`) and fills `usage` with token counts,
 plus `cost_usd` for Claude (Cursor reports none). If the output isn't valid
@@ -202,8 +218,7 @@ git worktree remove <workdir> && git branch -d <branch>
 | `claude-sonnet` | `claude -p --model sonnet --permission-mode acceptEdits --setting-sources project --strict-mcp-config --allowedTools <list> -- {prompt}` | Your personal Claude settings (output style, hooks) and MCP servers are not loaded; the repo's own settings are. Your global `CLAUDE.md` still is. Edits are allowed, plus `go`, `gofmt`, `make`, `golangci-lint`, `gotestsum`, `which` and `git add/commit/status/diff`. Anything else that would prompt is denied (`git push` included). Claude's "sensitive file" guard (e.g. `.pre-commit-config.yaml`) cannot be lifted by an allow rule: write those files yourself before delegating. |
 | `claude-haiku` | `claude -p --model haiku ...` (same args as `claude-sonnet`) | Same permissions as `claude-sonnet`. For fully specified, mechanical work: renames, sweeps, exact edits. |
 
-All three time out after 30 minutes by default. Custom profiles via a config file are
-on the [roadmap](docs/roadmap.md).
+All three time out after 30 minutes by default. Custom profiles: see the config file above.
 
 ## Limitations
 

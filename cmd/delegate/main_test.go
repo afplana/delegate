@@ -9,12 +9,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/afplana/delegate/internal/config"
 	"github.com/afplana/delegate/internal/gittest"
 	"github.com/afplana/delegate/internal/runner"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// withProfiles wraps profiles in a config with the built-in default name.
+func withProfiles(profiles map[string]runner.Profile) config.Config {
+	return config.Config{Default: config.DefaultProfile, Profiles: profiles}
+}
 
 // fakeWorker returns a profile that runs a shell script instead of an agent.
 // The prompt is passed as $1 so scripts can check it arrived.
@@ -45,7 +51,7 @@ func runDelegateWithPlan(t *testing.T, profiles map[string]runner.Profile, planT
 
 	var stdout, stderr bytes.Buffer
 	args := append([]string{"run", "--task", task, "--repo", repo, "--profile", "fake"}, extraArgs...)
-	code := runCommands(t.Context(), args, &stdout, &stderr, profiles)
+	code := runCommands(t.Context(), args, &stdout, &stderr, withProfiles(profiles))
 
 	var res result
 	require.NoError(t, json.Unmarshal(stdout.Bytes(), &res), "stdout: %s\nstderr: %s", stdout.String(), stderr.String())
@@ -186,7 +192,7 @@ func TestRun_FlagsADirtySourceRepo(t *testing.T) {
 	require.NoError(t, os.WriteFile(task, []byte(validPlan), 0o600))
 	var stdout, stderr bytes.Buffer
 
-	runCommands(t.Context(), []string{"run", "--task", task, "--repo", repo, "--profile", "fake"}, &stdout, &stderr, fakeWorker("true"))
+	runCommands(t.Context(), []string{"run", "--task", task, "--repo", repo, "--profile", "fake"}, &stdout, &stderr, withProfiles(fakeWorker("true")))
 
 	var res result
 	require.NoError(t, json.Unmarshal(stdout.Bytes(), &res), "stdout: %s", stdout.String())
@@ -236,7 +242,7 @@ func TestRun_RefusesToStartInsideAnotherRun(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 
 	// The check comes first, so it needs no real repo or plan.
-	code := runCommands(t.Context(), []string{"run", "--task", "plan.md", "--profile", "fake"}, &stdout, &stderr, fakeWorker("true"))
+	code := runCommands(t.Context(), []string{"run", "--task", "plan.md", "--profile", "fake"}, &stdout, &stderr, withProfiles(fakeWorker("true")))
 
 	var res result
 	require.NoError(t, json.Unmarshal(stdout.Bytes(), &res), "stdout: %s", stdout.String())
@@ -273,6 +279,42 @@ func TestRun_FallsBackToRawOutputWhenParsingFails(t *testing.T) {
 	assert.Nil(t, res.Usage)
 }
 
+// runInRepoWithConfig runs `delegate run` (no --profile) in a repo holding repoYAML as .delegate.yaml.
+func runInRepoWithConfig(t *testing.T, cfg config.Config, repoYAML string) result {
+	t.Helper()
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	t.Setenv("DELEGATE_RUN_ID", "")
+	repo := gittest.InitRepo(t)
+	require.NoError(t, os.WriteFile(filepath.Join(repo, ".delegate.yaml"), []byte(repoYAML), 0o600))
+	task := filepath.Join(t.TempDir(), "plan.md")
+	require.NoError(t, os.WriteFile(task, []byte(validPlan), 0o600))
+	var stdout, stderr bytes.Buffer
+
+	runCommands(t.Context(), []string{"run", "--task", task, "--repo", repo}, &stdout, &stderr, cfg)
+
+	var res result
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &res), "stdout: %s\nstderr: %s", stdout.String(), stderr.String())
+	return res
+}
+
+func TestRun_RepoConfigPicksTheDefaultProfile(t *testing.T) {
+	profiles := fakeWorker("true")
+	profiles["other"] = profiles["fake"]
+
+	res := runInRepoWithConfig(t, config.Config{Default: "other", Profiles: profiles}, "default_profile: fake\n")
+
+	assert.Equal(t, "ok", res.Status, res.Error)
+	assert.Equal(t, "fake", res.Profile)
+}
+
+func TestRun_RepoConfigCannotChooseWhatRuns(t *testing.T) {
+	res := runInRepoWithConfig(t, withProfiles(fakeWorker("touch started.txt")), "profiles:\n  fake:\n    command: rm\n")
+
+	assert.Equal(t, "error", res.Status)
+	assert.Contains(t, res.Error, "profiles.fake.command: not allowed in a repo file")
+	assert.Empty(t, res.Workdir, "the worker never starts")
+}
+
 func TestRun_ReportsDelegateFailuresAsJSON(t *testing.T) {
 	code, res := runDelegate(t, map[string]runner.Profile{})
 
@@ -284,7 +326,7 @@ func TestRun_ReportsDelegateFailuresAsJSON(t *testing.T) {
 func TestRun_RequiresTask(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 
-	code := runCommands(t.Context(), []string{"run"}, &stdout, &stderr, fakeWorker("true"))
+	code := runCommands(t.Context(), []string{"run"}, &stdout, &stderr, withProfiles(fakeWorker("true")))
 
 	assert.Equal(t, 2, code)
 	assert.Contains(t, stderr.String(), "--task is required")

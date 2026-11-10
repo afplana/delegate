@@ -39,6 +39,11 @@ type Changes struct {
 	Diffstat string
 }
 
+// Root returns the top-level directory of the git repository containing dir.
+func Root(ctx context.Context, dir string) (string, error) {
+	return git(ctx, dir, "rev-parse", "--show-toplevel")
+}
+
 // Prepare creates a worktree on branch delegate/<RunID> from the repo's HEAD,
 // or with InPlace returns the repo itself after checking its branch.
 // Uncommitted changes in the repo are not copied into a new worktree; Dirty
