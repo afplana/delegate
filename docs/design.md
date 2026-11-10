@@ -84,6 +84,7 @@ for prompts too large for argv.
   "workdir": "~/.local/state/delegate/worktrees/20261013-142900-ab12",
   "branch": "delegate/20261013-142900-ab12",
   "base": "<commit the worker started from>",
+  "dirty": true,
   "files_changed": ["internal/x.go"],
   "out_of_scope": ["only changed files the plan's # Files section does not allow"],
   "diffstat": "3 files changed, 40 insertions(+), 2 deletions(-)",
@@ -100,6 +101,10 @@ Printed as one line. `log_dir` holds `prompt.md`, `stdout.log`, `stderr.log` and
 `result.json`. The caller reads them only when needed. `files_changed` and
 `diffstat` compare the workdir with `base`, so they include commits the worker made
 and new untracked files.
+
+`dirty` appears only when the repo had uncommitted or untracked files at start
+(`git status --porcelain` non-empty): invisible to a worker in a new worktree,
+mixed into `files_changed` with `--in-place`.
 
 `out_of_scope` appears only when the plan has a `# Files` section and some
 changed file matches none of its entries (exact path, `dir/` or `dir/**`, or a

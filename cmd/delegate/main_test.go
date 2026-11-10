@@ -177,6 +177,30 @@ func TestRun_RecordsRepoAndStartTimeOnError(t *testing.T) {
 	assert.NotEmpty(t, res.StartedAt)
 }
 
+func TestRun_FlagsADirtySourceRepo(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	t.Setenv("DELEGATE_RUN_ID", "")
+	repo := gittest.InitRepo(t)
+	require.NoError(t, os.WriteFile(filepath.Join(repo, "README.md"), []byte("uncommitted\n"), 0o600))
+	task := filepath.Join(t.TempDir(), "plan.md")
+	require.NoError(t, os.WriteFile(task, []byte(validPlan), 0o600))
+	var stdout, stderr bytes.Buffer
+
+	runCommands(t.Context(), []string{"run", "--task", task, "--repo", repo, "--profile", "fake"}, &stdout, &stderr, fakeWorker("true"))
+
+	var res result
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &res), "stdout: %s", stdout.String())
+	assert.True(t, res.Dirty)
+}
+
+func TestRun_CleanRepoLeavesDirtyOut(t *testing.T) {
+	_, res := runDelegate(t, fakeWorker("true"))
+
+	line, err := os.ReadFile(filepath.Join(res.LogDir, "result.json"))
+	require.NoError(t, err)
+	assert.NotContains(t, string(line), `"dirty"`)
+}
+
 func TestRun_RefusesAPlanWithoutRequiredSections(t *testing.T) {
 	// The worker must never start on a plan with no way to tell when it is done.
 	code, res := runDelegateWithPlan(t, fakeWorker("touch started.txt"), "# Goal\nCreate new.txt\n")

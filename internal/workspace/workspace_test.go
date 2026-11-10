@@ -93,3 +93,39 @@ func TestPrepare_FailsOutsideGitRepo(t *testing.T) {
 
 	assert.ErrorContains(t, err, "not a git repository")
 }
+
+func TestPrepare_ReportsWhetherTheRepoHadUncommittedWork(t *testing.T) {
+	tests := []struct {
+		name  string
+		dirty func(t *testing.T, repo string)
+		want  bool
+	}{
+		{name: "clean repo", dirty: func(*testing.T, string) {}, want: false},
+		{
+			// The new worktree starts from HEAD, so this edit is invisible to the worker.
+			name: "modified tracked file",
+			dirty: func(t *testing.T, repo string) {
+				require.NoError(t, os.WriteFile(filepath.Join(repo, "README.md"), []byte("local edit\n"), 0o600))
+			},
+			want: true,
+		},
+		{
+			name: "untracked file",
+			dirty: func(t *testing.T, repo string) {
+				require.NoError(t, os.WriteFile(filepath.Join(repo, "scratch.txt"), []byte("x\n"), 0o600))
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := gittest.InitRepo(t)
+			tt.dirty(t, repo)
+
+			ws, err := workspace.Prepare(t.Context(), workspace.Options{Repo: repo, RunID: "run1", WorktreeRoot: t.TempDir()})
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, ws.Dirty)
+		})
+	}
+}

@@ -98,6 +98,7 @@ Wait for the completion notification, then read the single JSON line:
 | `status` | `ok` / `needs_input` (worker asked something — see `question`) / `failed` (non-zero exit) / `timeout` / `error` (delegate itself failed — see `error`) |
 | `workdir`, `branch`, `base` | where the work is, and the commit it started from |
 | `files_changed`, `diffstat` | scope check before reading any code |
+| `dirty` | the repo had uncommitted files: the worker didn't see them (worktree), or `files_changed` includes them (`--in-place`). Say so in the report |
 | `out_of_scope` | changed files outside the plan's `# Files`; review these first. Absent when everything is in scope or the plan had no `# Files` |
 | `summary` | the worker's own report (or the last 20 lines if it skipped the block) |
 | `usage` | worker tokens (and `cost_usd` for Claude); mention them in the report. Absent if the CLI output couldn't be parsed |
