@@ -45,7 +45,7 @@ Every card ends the same way: `make check` green, then a commit.
 | `--verify`: delegate runs the acceptance commands itself | ✅ card 18 |
 | File allowlist in the plan; `out_of_scope` in the result | ✅ card 19 |
 | Plan check: refuse a plan without Goal, Steps, Acceptance criteria | ✅ card 20 |
-| Cost, tokens and review verdict recorded per run | 🟡 card 21 (usage done; `review` and `stats` open) |
+| Cost, tokens and review verdict recorded per run | ✅ card 21 |
 | `claude-haiku` profile | ✅ card 22 |
 | Skill: plans give paths and line ranges, not pasted code | ✅ card 23 |
 | `repo` and `started_at` in `result.json` | ✅ card 24 |
@@ -252,7 +252,7 @@ parsing markdown can't fail.
 - Seam: `Plan.Missing() []string`.
 - Idioms: table-driven tests, `slices.Contains`.
 
-### 21 🟡 Cost, tokens and review verdict per run (about 1 hour)
+### 21 ✅ Cost, tokens and review verdict per run (about 1 hour)
 
 State 2026-11-10: usage done. Profiles carry a `Parse` func
 (`runner.ParseClaudeJSON` / `ParseCursorJSON`); the Cursor shape is from a real
@@ -260,7 +260,9 @@ run, the Claude shape re-checked live on 2026-11-10 from a plain terminal
 (`result`, `total_cost_usd` 0.0111, `usage.input_tokens` 2 for a haiku
 "reply ok"; Claude Code's MCP-policy warnings go to stderr, so stdout stays
 valid JSON).
-Open: `delegate review` and `delegate stats`.
+`delegate review` and `delegate stats` added the same day (`internal/history`);
+first real `stats` over 35 runs: cursor 27, claude-sonnet 6, claude-haiku 2,
+no verdicts yet.
 
 Record what each run cost and whether its result was accepted, so the choice
 between Cursor and Sonnet rests on data (today: 4 Cursor runs, 6 Sonnet runs,

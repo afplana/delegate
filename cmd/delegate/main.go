@@ -26,12 +26,16 @@ func main() {
 // and the profiles are passed in so tests can use a fake worker.
 func runCommands(ctx context.Context, args []string, stdout, stderr io.Writer, profiles map[string]runner.Profile) int {
 	if len(args) == 0 {
-		fmt.Fprintln(stderr, "usage: delegate <run|profiles|doctor|version>")
+		fmt.Fprintln(stderr, "usage: delegate <run|review|stats|profiles|doctor|version>")
 		return 2
 	}
 	switch args[0] {
 	case "run":
 		return runTask(ctx, args[1:], stdout, stderr, profiles)
+	case "review":
+		return runReview(args[1:], stdout, stderr)
+	case "stats":
+		return runStats(stdout, stderr)
 	case "profiles":
 		return listProfiles(stdout, profiles)
 	case "doctor":

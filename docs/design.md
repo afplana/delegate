@@ -28,6 +28,8 @@ Plan with Opus and code with Sonnet, plan with Opus and code with Cursor — sam
 
 ```
 delegate run --task plan.md [--profile claude-sonnet] [--repo .] [--in-place] [--timeout 30m] [--verify <cmd>]...   # v1
+delegate review <run-id> accepted|needs-fixes|failed [note...]                            # writes runs/<id>/review.json
+delegate stats                                                                            # per-profile runs, statuses, accept rate, median tokens, cost
 delegate version                                                                          # v1
 delegate profiles                                                                         # v1: list profiles and whether their binary is on PATH
 delegate doctor                                                                           # v1: check git, state dir and the default profile's binary

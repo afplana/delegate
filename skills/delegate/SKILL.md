@@ -154,6 +154,9 @@ Then stop and wait. Do not pick an option for the user.
 
 ## 5. After the user decides
 
+Record the outcome first, so `delegate stats` can compare profiles:
+`delegate review <run_id> accepted|needs-fixes|failed "<one-line reason>"`.
+
 - **Accept**: commit in the worktree (stage the `files_changed` paths, not
   `-A`), then bring it over. Show the commands first:
   ```bash
