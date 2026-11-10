@@ -175,6 +175,8 @@ git worktree remove <workdir> && git branch -d <branch>
 | Command | What it does |
 |---|---|
 | `delegate run` | run one task with one profile (above) |
+| `delegate review <run-id> accepted\|needs-fixes\|failed [note]` | record how the review of a run went (`runs/<id>/review.json`; a later verdict replaces it) |
+| `delegate stats` | one row per profile: runs per status, accepted/reviewed, median tokens, total cost; lists run dirs it could not read |
 | `delegate profiles` | list profiles and whether each binary is on `PATH` |
 | `delegate doctor` | check git, the state dir and the default profile's binary |
 | `delegate version` | print the build version |
