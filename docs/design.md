@@ -72,6 +72,8 @@ for prompts too large for argv.
 {
   "run_id": "20261013-142900-ab12",
   "profile": "cursor",
+  "repo": "<absolute path of --repo>",
+  "started_at": "2026-10-13T14:29:00Z",
   "status": "ok | failed | timeout | error",
   "exit_code": 0,
   "duration_ms": 412000,

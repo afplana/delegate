@@ -137,6 +137,28 @@ func TestRun_WithoutFilesSectionSkipsTheScopeCheck(t *testing.T) {
 	assert.Nil(t, res.OutOfScope)
 }
 
+func TestRun_RecordsRepoAndStartTime(t *testing.T) {
+	// A past result.json must say where and when the run happened.
+	before := time.Now().UTC().Truncate(time.Second)
+
+	_, res := runDelegate(t, fakeWorker("true"))
+
+	assert.True(t, filepath.IsAbs(res.Repo), "repo is absolute, got %q", res.Repo)
+	assert.DirExists(t, filepath.Join(res.Repo, ".git"))
+	started, err := time.Parse(time.RFC3339, res.StartedAt)
+	require.NoError(t, err)
+	assert.False(t, started.Before(before), "started_at %s is before the test began", res.StartedAt)
+	assert.Equal(t, time.UTC, started.Location())
+}
+
+func TestRun_RecordsRepoAndStartTimeOnError(t *testing.T) {
+	_, res := runDelegateWithPlan(t, fakeWorker("true"), "# Goal\nonly\n")
+
+	assert.Equal(t, "error", res.Status)
+	assert.NotEmpty(t, res.Repo)
+	assert.NotEmpty(t, res.StartedAt)
+}
+
 func TestRun_RefusesAPlanWithoutRequiredSections(t *testing.T) {
 	// The worker must never start on a plan with no way to tell when it is done.
 	code, res := runDelegateWithPlan(t, fakeWorker("touch started.txt"), "# Goal\nCreate new.txt\n")

@@ -44,7 +44,10 @@ One or two sentences: the behaviour that must exist when done.
 
 # Context
 - Repo conventions the worker must follow (test framework, lint, naming).
-- Relevant files with paths, and the 5–20 lines that matter from each.
+- Relevant code as `path:start-end — why it matters`, one per line. The
+  worker reads the files itself, so don't paste code it will re-read. Paste a
+  few lines only when the worker must not read past them (one function in a
+  huge file).
 
 # Steps
 1. Concrete, ordered edits. Name files and functions.
