@@ -112,8 +112,8 @@ func TestRemoveStale_KeepsAnUnmergedBranch(t *testing.T) {
 
 	err = workspace.RemoveStale(t.Context(), stale[0])
 
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "kept branch")
+	require.ErrorIs(t, err, workspace.ErrBranchKept)
+	assert.NotContains(t, err.Error(), "hint:", "only git's first line, not its advice")
 	assert.NoDirExists(t, ws.Dir, "the worktree itself is clean, so it goes")
 	assert.NotEmpty(t, gittest.Run(t, repo, "branch", "--list", "delegate/"+oldRun))
 }

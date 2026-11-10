@@ -67,6 +67,24 @@ func TestClean_YesWithLogsRemovesLogsToo(t *testing.T) {
 	assert.NoDirExists(t, logDir)
 }
 
+func TestClean_SaysTheWorktreeWentWhenOnlyTheBranchIsKept(t *testing.T) {
+	// Seen for real: cherry-picked work leaves the branch "not fully merged".
+	worktree, _ := oldRunState(t)
+	require.NoError(t, os.WriteFile(filepath.Join(worktree, "new.txt"), []byte("x\n"), 0o600))
+	gittest.Run(t, worktree, "add", "new.txt")
+	gittest.Run(t, worktree, "commit", "--message", "worker commit")
+	var stdout, stderr bytes.Buffer
+
+	code := runCommands(t.Context(), []string{"clean", "--yes"}, &stdout, &stderr, nil)
+
+	require.Equal(t, 0, code)
+	out := stdout.String()
+	assert.Contains(t, out, "removed worktree "+oldRunID)
+	assert.Contains(t, out, "kept branch delegate/"+oldRunID)
+	assert.NotContains(t, out, "kept   worktree")
+	assert.NoDirExists(t, worktree)
+}
+
 func TestClean_RecentRunsAreLeftAlone(t *testing.T) {
 	worktree, _ := oldRunState(t)
 	var stdout, stderr bytes.Buffer
