@@ -35,6 +35,9 @@ func runDelegate(t *testing.T, profiles map[string]runner.Profile, extraArgs ...
 
 func runDelegateWithPlan(t *testing.T, profiles map[string]runner.Profile, planText string, extraArgs ...string) (int, result) {
 	t.Helper()
+	// These tests may themselves run inside a delegate worker; an inherited
+	// run id would make every run refuse as nested.
+	t.Setenv("DELEGATE_RUN_ID", "")
 	t.Setenv("XDG_STATE_HOME", t.TempDir())
 	repo := gittest.InitRepo(t)
 	task := filepath.Join(t.TempDir(), "plan.md")
@@ -192,6 +195,31 @@ func TestRun_ReportsTheWorkersQuestion(t *testing.T) {
 	assert.Equal(t, "needs_input", res.Status)
 	assert.Equal(t, "Step 2: keep the alias?", res.Question)
 	assert.Equal(t, "Did step 1.", res.Summary)
+}
+
+func TestRun_MarksTheWorkerWithItsRunID(t *testing.T) {
+	_, res := runDelegate(t, fakeWorker(`echo "$DELEGATE_RUN_ID" > run-id.txt`))
+
+	got, err := os.ReadFile(filepath.Join(res.Workdir, "run-id.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, res.RunID+"\n", string(got))
+}
+
+func TestRun_RefusesToStartInsideAnotherRun(t *testing.T) {
+	// A worker is a full agent session with the delegate skill loaded; a plan
+	// saying "delegate X" must not make it start a worker of its own.
+	t.Setenv("DELEGATE_RUN_ID", "outer-run")
+	var stdout, stderr bytes.Buffer
+
+	// The check comes first, so it needs no real repo or plan.
+	code := runCommands(t.Context(), []string{"run", "--task", "plan.md", "--profile", "fake"}, &stdout, &stderr, fakeWorker("true"))
+
+	var res result
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &res), "stdout: %s", stdout.String())
+	assert.Equal(t, 1, code)
+	assert.Equal(t, "error", res.Status)
+	assert.Equal(t, "nested delegate run inside run outer-run", res.Error)
+	assert.Empty(t, res.Workdir, "no worktree for a refused run")
 }
 
 func TestRun_ReportsDelegateFailuresAsJSON(t *testing.T) {

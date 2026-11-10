@@ -41,7 +41,7 @@ Every card ends the same way: `make check` green, then a commit.
 | Codex and Gemini profiles, verified | ⬜ card 14 |
 | Dirty-repo warning in the result | ⬜ card 15 |
 | Public release | ⬜ card 16 |
-| Recursion guard: a worker cannot start its own delegate run | ⬜ card 17 (Alain codes) |
+| Recursion guard: a worker cannot start its own delegate run | ✅ card 17 |
 | `--verify`: delegate runs the acceptance commands itself | ✅ card 18 |
 | File allowlist in the plan; `out_of_scope` in the result | ✅ card 19 |
 | Plan check: refuse a plan without Goal, Steps, Acceptance criteria | ✅ card 20 |
@@ -49,7 +49,7 @@ Every card ends the same way: `make check` green, then a commit.
 | `claude-haiku` profile | ✅ card 22 |
 | Skill: plans give paths and line ranges, not pasted code | ✅ card 23 |
 | `repo` and `started_at` in `result.json` | ✅ card 24 |
-| Worker isolated from the user's Claude setup | 🟡 card 25 (steps 1–2 done and probed; step 3 needs card 17) |
+| Worker isolated from the user's Claude setup | 🟡 card 25 (steps 1–2 done and probed; step 3 = a line in the user's CLAUDE.md) |
 | `needs_input` status when the worker hits an ambiguity | ✅ card 26 |
 
 ## v1 slices (done)
@@ -172,7 +172,11 @@ non-empty in the source repo.
 - Tag `v0.1.0`; optionally add goreleaser for binaries.
 - Flip the repo to public.
 
-### 17 ⬜ Recursion guard (about 30 minutes) — Alain codes, Claude helps (mode 2)
+### 17 ✅ Recursion guard (about 30 minutes)
+
+Done 2026-11-10 in mode 3 (Claude wrote it; on Alain's explain-back list).
+The optional second layer (blocking the skill in the claude profile args) was
+not added: the env guard already covers every CLI.
 
 A worker is a full agent session (`claude -p` loads your user skills, including
 `delegate`), so a plan saying "delegate X" could make the worker start its own
@@ -311,7 +315,8 @@ State 2026-11-10: step 1 done. Step 2 done differently: the contract is
 `--append-system-prompt`, so Cursor gets it too and delegate stays
 CLI-agnostic. Probe rerun 2026-11-10 from a plain terminal with the new
 flags: output style **no**, MCP tools **no** (user CLAUDE.md still loads, as
-expected). Open: step 3 (needs card 17).
+expected). Open: step 3, now unblocked by card 17: a line in the user's
+global `CLAUDE.md` (outside this repo).
 
 The `claude-sonnet` worker loads the user's whole personal setup. Probe on
 2026-10-19 (Haiku answering yes/no about its own context, run from this repo):

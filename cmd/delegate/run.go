@@ -52,6 +52,10 @@ type verifyResult struct {
 	Tail     string `json:"tail"`
 }
 
+// runIDEnv marks a worker's environment with its run id, so a delegate
+// started inside a worker can tell it is nested.
+const runIDEnv = "DELEGATE_RUN_ID"
+
 type runFlags struct {
 	task, profile, repo string
 	inPlace             bool
@@ -125,6 +129,11 @@ func execute(ctx context.Context, f runFlags, profiles map[string]runner.Profile
 		return res
 	}
 
+	// A worker is a full agent session that may have the delegate skill; it
+	// must never start a worker of its own. Empty counts as unset.
+	if outer := os.Getenv(runIDEnv); outer != "" {
+		return fail(fmt.Errorf("nested delegate run inside run %s", outer))
+	}
 	profile, err := config.Lookup(profiles, f.profile)
 	if err != nil {
 		return fail(err)
@@ -166,7 +175,7 @@ func execute(ctx context.Context, f runFlags, profiles map[string]runner.Profile
 	if err := writeLogs(logDir, map[string]string{"prompt.md": prompt}); err != nil {
 		return fail(err)
 	}
-	out, err := runner.Run(ctx, profile, runner.Task{Prompt: prompt, Dir: ws.Dir})
+	out, err := runner.Run(ctx, profile, runner.Task{Prompt: prompt, Dir: ws.Dir, Env: []string{runIDEnv + "=" + res.RunID}})
 	if err != nil {
 		return fail(err)
 	}

@@ -134,6 +134,12 @@ Output (one line, pretty-printed here):
 Bad flags print usage to stderr and exit 2. Full output lives in `log_dir`:
 `prompt.md`, `stdout.log`, `stderr.log`, `result.json`.
 
+The worker runs with `DELEGATE_RUN_ID=<run-id>` in its environment, and
+`delegate run` refuses to start when that is set, so a worker can't start a
+worker of its own. Your global `CLAUDE.md` can use it too, e.g. "if
+`DELEGATE_RUN_ID` is set, you are a delegate worker: skip my personal workflow
+rules".
+
 Every prompt starts with a short worker contract (unattended, no questions,
 stay in the worktree, no push) and the worker is told to end with a
 `<delegate-summary>` block; that becomes
