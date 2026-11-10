@@ -33,6 +33,7 @@ type result struct {
 	Workdir      string         `json:"workdir,omitempty"`
 	Branch       string         `json:"branch,omitempty"`
 	Base         string         `json:"base,omitempty"`
+	Dirty        bool           `json:"dirty,omitempty"` // repo had uncommitted or untracked files at start
 	FilesChanged []string       `json:"files_changed"`
 	OutOfScope   []string       `json:"out_of_scope,omitempty"` // changed files the plan's # Files does not allow
 	Diffstat     string         `json:"diffstat"`
@@ -180,7 +181,7 @@ func execute(ctx context.Context, f runFlags, profiles map[string]runner.Profile
 	if err != nil {
 		return fail(err)
 	}
-	res.Workdir, res.Branch, res.Base = ws.Dir, ws.Branch, ws.Base
+	res.Workdir, res.Branch, res.Base, res.Dirty = ws.Dir, ws.Branch, ws.Base, ws.Dirty
 
 	prompt := runner.WorkerContract + string(planText) + runner.SummaryInstruction
 	if err := writeLogs(logDir, map[string]string{"prompt.md": prompt}); err != nil {

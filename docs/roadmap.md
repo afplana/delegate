@@ -39,7 +39,7 @@ Every card ends the same way: `make check` green, then a commit.
 | Large prompts via stdin | ⬜ card 12 |
 | Clean up old worktrees and runs | ⬜ card 13 |
 | Codex and Gemini profiles, verified | ⬜ card 14 |
-| Dirty-repo warning in the result | ⬜ card 15 |
+| Dirty-repo warning in the result | ✅ card 15 |
 | Public release | ⬜ card 16 |
 | Recursion guard: a worker cannot start its own delegate run | ✅ card 17 |
 | `--verify`: delegate runs the acceptance commands itself | ✅ card 18 |
@@ -160,7 +160,7 @@ destructive, so it shows what it would remove and needs `--yes` to act.
 Read `codex --help` and `gemini --help`, add the profiles, and smoke-test each
 with a one-line task. Record the verified flags in design.md.
 
-### 15 ⬜ Dirty-repo warning (about 20 minutes)
+### 15 ✅ Dirty-repo warning (about 20 minutes)
 
 A new worktree starts from HEAD, so uncommitted work is invisible to the
 worker. Add `"dirty": true` to the result when `git status --porcelain` is

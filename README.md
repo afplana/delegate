@@ -108,6 +108,10 @@ line (`- ` and backticks are fine): an exact path, `dir/` or `dir/**` for a
 whole directory, or a one-segment glob like `internal/*_test.go`. Changed files
 matching none of them land in `out_of_scope`. No `# Files` section, no check.
 
+`"dirty": true` means the repo had uncommitted or untracked files when the run
+started. A new worktree starts from `HEAD`, so the worker never saw them; with
+`--in-place`, `files_changed` includes them. Commit first to avoid both.
+
 Output (one line, pretty-printed here):
 
 ```json

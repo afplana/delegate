@@ -28,6 +28,9 @@ type Workspace struct {
 	Branch string
 	// Base is the commit the worker started from; Changes diffs against it.
 	Base string
+	// Dirty is true when the repo had uncommitted or untracked files. In a new
+	// worktree the worker never saw them; in place, Changes includes them.
+	Dirty bool
 }
 
 // Changes is what a worker changed relative to Workspace.Base.
@@ -38,7 +41,8 @@ type Changes struct {
 
 // Prepare creates a worktree on branch delegate/<RunID> from the repo's HEAD,
 // or with InPlace returns the repo itself after checking its branch.
-// Uncommitted changes in the repo are not copied into a new worktree.
+// Uncommitted changes in the repo are not copied into a new worktree; Dirty
+// says whether there were any.
 func Prepare(ctx context.Context, opts Options) (Workspace, error) {
 	root, err := git(ctx, opts.Repo, "rev-parse", "--show-toplevel")
 	if err != nil {
@@ -48,6 +52,11 @@ func Prepare(ctx context.Context, opts Options) (Workspace, error) {
 	if err != nil {
 		return Workspace{}, err
 	}
+	status, err := git(ctx, root, "status", "--porcelain")
+	if err != nil {
+		return Workspace{}, err
+	}
+	dirty := status != ""
 
 	if opts.InPlace {
 		branch, err := git(ctx, root, "rev-parse", "--abbrev-ref", "HEAD")
@@ -57,7 +66,7 @@ func Prepare(ctx context.Context, opts Options) (Workspace, error) {
 		if branch == "main" || branch == "master" {
 			return Workspace{}, fmt.Errorf("refusing to run in place on %q: switch to a feature branch or drop --in-place", branch)
 		}
-		return Workspace{Dir: root, Branch: branch, Base: base}, nil
+		return Workspace{Dir: root, Branch: branch, Base: base, Dirty: dirty}, nil
 	}
 
 	branch := "delegate/" + opts.RunID
@@ -65,7 +74,7 @@ func Prepare(ctx context.Context, opts Options) (Workspace, error) {
 	if _, err := git(ctx, root, "worktree", "add", "-b", branch, dir, base); err != nil {
 		return Workspace{}, err
 	}
-	return Workspace{Dir: dir, Branch: branch, Base: base}, nil
+	return Workspace{Dir: dir, Branch: branch, Base: base, Dirty: dirty}, nil
 }
 
 // Changes lists files that differ from Base, committed or not, including new
