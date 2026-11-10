@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/afplana/delegate/internal/config"
+	"github.com/afplana/delegate/internal/runner"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -80,6 +81,41 @@ profiles:
 	assert.NotNil(t, cfg.Profiles["mine"].Parse)
 }
 
+func TestWithUserFile_PromptVia(t *testing.T) {
+	path := writeYAML(t, `
+profiles:
+  piped:
+    command: my-agent
+    args: ["--headless"]
+    prompt_via: stdin
+  classic:
+    command: my-agent
+    args: ["{prompt}"]
+    prompt_via: arg
+  plain:
+    command: my-agent
+    args: ["{prompt}"]
+`)
+
+	cfg, err := config.Defaults().WithUserFile(path)
+
+	require.NoError(t, err)
+	assert.Equal(t, runner.PromptStdin, cfg.Profiles["piped"].PromptVia)
+	assert.Equal(t, runner.PromptArg, cfg.Profiles["classic"].PromptVia)
+	assert.Equal(t, runner.PromptArg, cfg.Profiles["plain"].PromptVia, "arg is the default for a new profile")
+}
+
+func TestWithUserFile_SwitchingABuiltinToArgsNeedsThePlaceholder(t *testing.T) {
+	// The built-ins read stdin and have no {prompt}; flipping only prompt_via
+	// would start a worker that never sees the task.
+	path := writeYAML(t, "profiles:\n  cursor:\n    prompt_via: arg\n")
+
+	_, err := config.Defaults().WithUserFile(path)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "profiles.cursor.args: must contain {prompt}")
+}
+
 func TestWithUserFile_Errors(t *testing.T) {
 	tests := []struct {
 		name, yaml, want string
@@ -90,6 +126,8 @@ func TestWithUserFile_Errors(t *testing.T) {
 		{name: "new profile without command", yaml: "profiles:\n  x:\n    args: [\"{prompt}\"]\n", want: "profiles.x.command: required for a new profile"},
 		{name: "args without the prompt", yaml: "profiles:\n  x:\n    command: x\n    args: [\"-p\"]\n", want: "profiles.x.args: must contain {prompt}"},
 		{name: "unknown default", yaml: "default_profile: nope\n", want: `default_profile: unknown profile "nope"`},
+		{name: "unknown prompt_via", yaml: "profiles:\n  x:\n    command: x\n    args: [\"{prompt}\"]\n    prompt_via: file\n", want: `profiles.x.prompt_via: unknown "file" (want arg, stdin)`},
+		{name: "stdin plus placeholder", yaml: "profiles:\n  x:\n    command: x\n    args: [\"{prompt}\"]\n    prompt_via: stdin\n", want: "profiles.x.args: {prompt} is not replaced when prompt_via is stdin"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -122,6 +160,7 @@ func TestWithRepoFile_RefusesToChooseWhatRuns(t *testing.T) {
 		{name: "command", yaml: "profiles:\n  cursor:\n    command: sh\n", want: "profiles.cursor.command: not allowed in a repo file"},
 		{name: "args", yaml: "profiles:\n  cursor:\n    args: [\"--force\", \"{prompt}\"]\n", want: "profiles.cursor.args: not allowed in a repo file"},
 		{name: "output", yaml: "profiles:\n  cursor:\n    output: text\n", want: "profiles.cursor.output: not allowed in a repo file"},
+		{name: "prompt_via", yaml: "profiles:\n  cursor:\n    prompt_via: arg\n", want: "profiles.cursor.prompt_via: not allowed in a repo file"},
 		{name: "new profile", yaml: "profiles:\n  evil:\n    timeout: 1m\n", want: `profiles.evil: a repo file cannot add profiles`},
 	}
 	for _, tt := range tests {

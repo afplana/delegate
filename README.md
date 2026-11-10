@@ -162,9 +162,10 @@ default_profile: claude-sonnet
 profiles:
   cursor:
     timeout: 45m          # override one field, keep the rest
-  codex:                  # add a profile
-    command: codex
-    args: ["exec", "{prompt}"]
+  my-agent:               # add a profile
+    command: my-agent
+    args: ["--headless"]
+    prompt_via: stdin     # arg (default: replaces {prompt} in args) | stdin
     output: text          # text | claude-json | cursor-json
 ```
 
@@ -214,11 +215,12 @@ git worktree remove <workdir> && git branch -d <branch>
 
 | Profile | Command | Notes |
 |---|---|---|
-| `cursor` (default) | `cursor-agent -p --trust --output-format json {prompt}` | Reports tokens, no cost. No `--force`, so it also works where an admin disabled "Run Everything". Shell commands may be restricted; the planner runs the tests. |
-| `claude-sonnet` | `claude -p --model sonnet --permission-mode acceptEdits --setting-sources project --strict-mcp-config --allowedTools <list> -- {prompt}` | Your personal Claude settings (output style, hooks) and MCP servers are not loaded; the repo's own settings are. Your global `CLAUDE.md` still is. Edits are allowed, plus `go`, `gofmt`, `make`, `golangci-lint`, `gotestsum`, `which` and `git add/commit/status/diff`. Anything else that would prompt is denied (`git push` included). Claude's "sensitive file" guard (e.g. `.pre-commit-config.yaml`) cannot be lifted by an allow rule: write those files yourself before delegating. |
+| `cursor` (default) | `cursor-agent -p --trust --output-format json` | Reports tokens, no cost. No `--force`, so it also works where an admin disabled "Run Everything". Shell commands may be restricted; the planner runs the tests. |
+| `claude-sonnet` | `claude -p --model sonnet --permission-mode acceptEdits --setting-sources project --strict-mcp-config --allowedTools <list>` | Your personal Claude settings (output style, hooks) and MCP servers are not loaded; the repo's own settings are. Your global `CLAUDE.md` still is. Edits are allowed, plus `go`, `gofmt`, `make`, `golangci-lint`, `gotestsum`, `which` and `git add/commit/status/diff`. Anything else that would prompt is denied (`git push` included). Claude's "sensitive file" guard (e.g. `.pre-commit-config.yaml`) cannot be lifted by an allow rule: write those files yourself before delegating. |
 | `claude-haiku` | `claude -p --model haiku ...` (same args as `claude-sonnet`) | Same permissions as `claude-sonnet`. For fully specified, mechanical work: renames, sweeps, exact edits. |
 
-All three time out after 30 minutes by default. Custom profiles: see the config file above.
+All three get the prompt on stdin, so plan size has no argv limit, and time out after 30
+minutes by default. Custom profiles: see the config file above.
 
 ## Limitations
 

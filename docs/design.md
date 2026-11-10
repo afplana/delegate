@@ -45,14 +45,16 @@ The `cursor` (default), `claude-sonnet` and `claude-haiku` profiles are built in
 Two optional files are merged over them, in this order:
 
 1. **User file** `$XDG_CONFIG_HOME/delegate/config.yaml` (else `~/.config/delegate/config.yaml`).
-   Trusted: may add profiles and set `command`, `args`, `timeout`, `output`, `default_profile`.
+   Trusted: may add profiles and set `command`, `args`, `timeout`, `output`, `prompt_via`,
+   `default_profile`.
 2. **Repo file** `<repo root>/.delegate.yaml`. Not trusted to choose what runs (a cloned repo
    could otherwise run any program): only `default_profile` and the `timeout` of existing
    profiles. Any other key is an error naming the file and key.
 
 A file can override one field of a profile and keep the rest. Unknown keys, bad durations,
-an unknown `output`, a new profile without `command`, `args` without `{prompt}` and an unknown
-`default_profile` are errors naming the file. `output` picks the stdout parser:
+an unknown `output` or `prompt_via`, a new profile without `command`, an `arg` profile without
+`{prompt}`, a `stdin` profile with `{prompt}` and an unknown `default_profile` are errors
+naming the file. `output` picks the stdout parser:
 `text` (default for new profiles), `claude-json`, `cursor-json`.
 
 ```yaml
@@ -60,28 +62,29 @@ default_profile: cursor
 profiles:
   cursor:
     command: cursor-agent
-    args: ["-p", "--trust", "--output-format", "json", "{prompt}"]   # parsed: reply + token usage
+    args: ["-p", "--trust", "--output-format", "json"]   # parsed: reply + token usage
+    prompt_via: stdin
     timeout: 30m
   claude-sonnet:
     command: claude
-    # --allowedTools is variadic, so "--" keeps it from swallowing the prompt
+    # --allowedTools is variadic, so it stays last
     # project-only settings and no MCP keep the user's personal setup out
     args: ["-p", "--model", "sonnet", "--permission-mode", "acceptEdits",
            "--setting-sources", "project", "--strict-mcp-config",
-           "--allowedTools", "Bash(go *)", "Bash(make *)", "Bash(git commit *)", "...",
-           "--", "{prompt}"]
+           "--allowedTools", "Bash(go *)", "Bash(make *)", "Bash(git commit *)", "..."]
+    prompt_via: stdin
     timeout: 30m
-  codex:            # untested
-    command: codex
-    output: text
-    args: ["exec", "--full-auto", "{prompt}"]
-  gemini:           # untested in v1
-    command: gemini
-    args: ["-p", "{prompt}", "--yolo"]
 ```
 
-Placeholders: `{prompt}` (v1). Later: `{prompt_file}`, `{model}`, and `prompt_via: stdin`
-for prompts too large for argv.
+`prompt_via` says how the prompt reaches the worker: `arg` (default for new profiles) replaces
+`{prompt}` in `args`; `stdin` writes it to the worker's stdin. The built-ins use `stdin`
+(verified 2026-11-10: `cursor-agent -p` and `claude -p` both read it) because the prompt
+(contract + plan) has no size limit there: Linux refuses one argument over 128 KiB and macOS
+caps argv plus env at 1 MiB. A 2 MiB plan ran through delegate this way. It also keeps the
+prompt out of `ps`. Arg profiles get an empty stdin, so a worker that reads it never blocks.
+
+Codex and Gemini have no built-in profile: they cannot be run on the work laptop, and a
+built-in needs flags that were really run. Add them in the user file once verified.
 
 ## Result contract
 

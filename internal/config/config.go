@@ -26,24 +26,28 @@ func Builtin() map[string]runner.Profile {
 			Command: "cursor-agent",
 			// No --force: org-managed Cursor accounts can disable it ("Run Everything"),
 			// and print mode already allows file edits without it.
-			Args:    []string{"-p", "--trust", "--output-format", "json", "{prompt}"},
+			Args:    []string{"-p", "--trust", "--output-format", "json"},
 			Timeout: defaultTimeout,
 			Parse:   runner.ParseCursorJSON,
+			// Verified 2026-11-10: cursor-agent -p and claude -p read the prompt from stdin.
+			PromptVia: runner.PromptStdin,
 		},
 		"claude-sonnet": {
-			Name:    "claude-sonnet",
-			Command: "claude",
-			Args:    claudeArgs("sonnet"),
-			Timeout: defaultTimeout,
-			Parse:   runner.ParseClaudeJSON,
+			Name:      "claude-sonnet",
+			Command:   "claude",
+			Args:      claudeArgs("sonnet"),
+			Timeout:   defaultTimeout,
+			Parse:     runner.ParseClaudeJSON,
+			PromptVia: runner.PromptStdin,
 		},
 		// For fully specified, mechanical work: renames, sweeps, exact edits.
 		"claude-haiku": {
-			Name:    "claude-haiku",
-			Command: "claude",
-			Args:    claudeArgs("haiku"),
-			Timeout: defaultTimeout,
-			Parse:   runner.ParseClaudeJSON,
+			Name:      "claude-haiku",
+			Command:   "claude",
+			Args:      claudeArgs("haiku"),
+			Timeout:   defaultTimeout,
+			Parse:     runner.ParseClaudeJSON,
+			PromptVia: runner.PromptStdin,
 		},
 	}
 }
@@ -76,9 +80,9 @@ func claudeArgs(model string) []string {
 		"--setting-sources", "project", "--strict-mcp-config",
 		"--allowedTools",
 	}
-	args = append(args, claudeAllowedTools...)
-	// --allowedTools is variadic: without "--" it would swallow the prompt.
-	return append(args, "--", "{prompt}")
+	// --allowedTools is variadic, so it must come last: the prompt arrives on
+	// stdin, and nothing may follow the tool names.
+	return append(args, claudeAllowedTools...)
 }
 
 // Lookup returns the profile called name, or an error naming the ones that exist.

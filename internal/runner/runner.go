@@ -16,12 +16,23 @@ import (
 // waitDelay is how long Run waits for output pipes after the worker is killed.
 const waitDelay = 2 * time.Second
 
+// PromptVia values: how the prompt reaches the worker.
+const (
+	// PromptArg replaces "{prompt}" in Args. It is the zero value.
+	PromptArg = ""
+	// PromptStdin writes the prompt to the worker's stdin. No argv size limit
+	// applies, and the prompt does not show up in `ps`.
+	PromptStdin = "stdin"
+)
+
 // Profile describes how to invoke one agent CLI.
 type Profile struct {
 	Name    string
 	Command string
 	// Args may contain the placeholder "{prompt}", replaced by Task.Prompt.
 	Args []string
+	// PromptVia is PromptArg or PromptStdin.
+	PromptVia string
 	// Timeout stops the command after this long. Zero means no limit.
 	Timeout time.Duration
 	// Parse reads the reply and usage out of stdout. Nil means stdout is
@@ -64,6 +75,10 @@ func Run(ctx context.Context, profile Profile, task Task) (Result, error) {
 
 	cmd := exec.CommandContext(ctx, profile.Command, args...) //nolint:gosec // G204: command comes from the user's own config
 	cmd.Dir = task.Dir
+	// A nil Stdin reads from /dev/null, so an arg profile never blocks on it.
+	if profile.PromptVia == PromptStdin {
+		cmd.Stdin = strings.NewReader(task.Prompt)
+	}
 	if len(task.Env) > 0 {
 		cmd.Env = append(os.Environ(), task.Env...)
 	}

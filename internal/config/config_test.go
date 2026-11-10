@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/afplana/delegate/internal/config"
+	"github.com/afplana/delegate/internal/runner"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,8 @@ func TestLookup_FindsBuiltinProfiles(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tt.name, profile.Name)
 			assert.Equal(t, tt.command, profile.Command)
-			assert.Contains(t, profile.Args, "{prompt}", "the task must reach the worker")
+			assert.Equal(t, runner.PromptStdin, profile.PromptVia, "stdin has no argv size limit")
+			assert.NotContains(t, profile.Args, "{prompt}", "the prompt goes on stdin, not twice")
 			assert.Positive(t, profile.Timeout, "a stuck worker must not hang the planner forever")
 		})
 	}
@@ -119,16 +121,19 @@ func TestBuiltin_ClaudeProfilesIgnoreTheUsersPersonalSetup(t *testing.T) {
 	}
 }
 
-func TestBuiltin_ClaudeProfilesEndOptionsBeforePrompt(t *testing.T) {
-	// --allowedTools is variadic; without "--" it takes the prompt as a tool
-	// name and claude exits with "Input must be provided".
+func TestBuiltin_ClaudeProfilesEndWithTheAllowedTools(t *testing.T) {
+	// --allowedTools is variadic and swallows any argument after it, so it
+	// must stay last now that no prompt argument follows.
 	for _, tt := range claudeProfiles {
 		t.Run(tt.name, func(t *testing.T) {
 			profile, err := config.Lookup(config.Builtin(), tt.name)
 
 			require.NoError(t, err)
-			require.GreaterOrEqual(t, len(profile.Args), 2)
-			assert.Equal(t, []string{"--", "{prompt}"}, profile.Args[len(profile.Args)-2:])
+			i := slices.Index(profile.Args, "--allowedTools")
+			require.NotEqual(t, -1, i)
+			for _, arg := range profile.Args[i+1:] {
+				assert.NotContains(t, arg, "--", "only tool names follow --allowedTools")
+			}
 		})
 	}
 }
