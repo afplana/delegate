@@ -36,6 +36,9 @@ var outputs = map[string]runner.ParseFunc{
 	"cursor-json": runner.ParseCursorJSON,
 }
 
+// promptVias maps a profile's `prompt_via` key to runner.Profile.PromptVia.
+var promptVias = map[string]string{"arg": runner.PromptArg, "stdin": runner.PromptStdin}
+
 // fileConfig is the YAML shape. Pointers tell "not set" from "set to zero",
 // so a file can override one field of a profile and keep the rest.
 type fileConfig struct {
@@ -44,10 +47,11 @@ type fileConfig struct {
 }
 
 type fileProfile struct {
-	Command *string   `yaml:"command"`
-	Args    *[]string `yaml:"args"`
-	Timeout *string   `yaml:"timeout"`
-	Output  *string   `yaml:"output"`
+	Command   *string   `yaml:"command"`
+	Args      *[]string `yaml:"args"`
+	Timeout   *string   `yaml:"timeout"`
+	Output    *string   `yaml:"output"`
+	PromptVia *string   `yaml:"prompt_via"`
 }
 
 // WithUserFile merges the user's own config file over c. The user's file is
@@ -105,7 +109,7 @@ func mergeProfile(profiles map[string]runner.Profile, name string, fp fileProfil
 		if !exists {
 			return runner.Profile{}, errors.New(": a repo file cannot add profiles")
 		}
-		for key, set := range map[string]bool{"command": fp.Command != nil, "args": fp.Args != nil, "output": fp.Output != nil} {
+		for key, set := range map[string]bool{"command": fp.Command != nil, "args": fp.Args != nil, "output": fp.Output != nil, "prompt_via": fp.PromptVia != nil} {
 			if set {
 				return runner.Profile{}, fmt.Errorf(".%s: not allowed in a repo file (only default_profile and timeout)", key)
 			}
@@ -124,7 +128,18 @@ func mergeProfile(profiles map[string]runner.Profile, name string, fp fileProfil
 	if fp.Args != nil {
 		profile.Args = *fp.Args
 	}
-	if !slices.ContainsFunc(profile.Args, func(a string) bool { return strings.Contains(a, "{prompt}") }) {
+	if fp.PromptVia != nil {
+		via, ok := promptVias[*fp.PromptVia]
+		if !ok {
+			return runner.Profile{}, fmt.Errorf(".prompt_via: unknown %q (want arg, stdin)", *fp.PromptVia)
+		}
+		profile.PromptVia = via
+	}
+	hasPlaceholder := slices.ContainsFunc(profile.Args, func(a string) bool { return strings.Contains(a, "{prompt}") })
+	switch {
+	case profile.PromptVia == runner.PromptStdin && hasPlaceholder:
+		return runner.Profile{}, errors.New(".args: {prompt} is not replaced when prompt_via is stdin (remove it, or set prompt_via: arg)")
+	case profile.PromptVia == runner.PromptArg && !hasPlaceholder:
 		return runner.Profile{}, errors.New(".args: must contain {prompt}, or the task never reaches the worker")
 	}
 	if fp.Timeout != nil {

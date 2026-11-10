@@ -2,6 +2,8 @@ package runner_test
 
 import (
 	"os/exec"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -121,4 +123,36 @@ func TestRun_PassesExtraEnvToTheWorker(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "run-1\nhome-kept\n", got.Output, "extra vars are added, the parent environment stays")
+}
+
+func TestRun_SendsThePromptOnStdin(t *testing.T) {
+	profile := runner.Profile{Name: "cat", Command: "cat", PromptVia: runner.PromptStdin}
+
+	res, err := runner.Run(t.Context(), profile, runner.Task{Prompt: "implement TEST-1", Dir: t.TempDir()})
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, res.ExitCode)
+	assert.Equal(t, "implement TEST-1", res.Output)
+}
+
+func TestRun_StdinCarriesAPromptTooBigForOneArgument(t *testing.T) {
+	// Linux refuses a single argument over 128 KiB (MAX_ARG_STRLEN) and macOS
+	// caps all of argv plus env at 1 MiB; a long plan plus the contract can hit both.
+	prompt := strings.Repeat("x", 2<<20)
+	profile := runner.Profile{Name: "wc", Command: "wc", Args: []string{"-c"}, PromptVia: runner.PromptStdin}
+
+	res, err := runner.Run(t.Context(), profile, runner.Task{Prompt: prompt, Dir: t.TempDir()})
+
+	require.NoError(t, err)
+	assert.Equal(t, strconv.Itoa(len(prompt)), strings.TrimSpace(res.Output))
+}
+
+func TestRun_ArgProfilesGetNoStdin(t *testing.T) {
+	// Without PromptVia, stdin stays empty so a worker that reads it never blocks.
+	profile := runner.Profile{Name: "sh", Command: "sh", Args: []string{"-c", "cat; echo done {prompt}"}}
+
+	res, err := runner.Run(t.Context(), profile, runner.Task{Prompt: "now", Dir: t.TempDir()})
+
+	require.NoError(t, err)
+	assert.Equal(t, "done now\n", res.Output)
 }

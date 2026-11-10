@@ -143,7 +143,11 @@ over `config.Builtin()`. Format: see design.md § Config.
 - Idioms: `gopkg.in/yaml.v3` struct tags, `errors.Is(err, fs.ErrNotExist)`,
   `time.ParseDuration`.
 
-### 12 ⬜ Large prompts via stdin (about 30 minutes)
+### 12 ✅ Large prompts via stdin (about 30 minutes)
+
+Done 2026-11-10. `prompt_via: arg|stdin` in the config; the built-ins now use
+stdin (both CLIs verified reading it). Real runs: a 2 MiB prompt through a
+`wc -c` profile, plus cursor and claude-haiku creating a file.
 
 macOS caps argv at about 1 MB. Add `PromptVia string` ("arg" or "stdin") to
 `runner.Profile`; with "stdin", set `cmd.Stdin = strings.NewReader(task.Prompt)`.
@@ -165,10 +169,14 @@ destructive, so it shows what it would remove and needs `--yes` to act.
 - Idioms: `os.ReadDir`, `fs.FileInfo.ModTime`, `git worktree remove`, `git branch -D`.
 - State on 2026-10-23: 3 leftover worktrees, 21 MB.
 
-### 14 ⬜ Codex and Gemini profiles (about 20 minutes plus real runs)
+### 14 ⬜ Codex and Gemini profiles (personal laptop only)
 
-Read `codex --help` and `gemini --help`, add the profiles, and smoke-test each
-with a one-line task. Record the verified flags in design.md.
+Blocked on the work laptop: only Claude and Cursor are allowed there. The
+personal laptop has Codex and Gemini but no Claude or Cursor, so this one is
+done there by hand. Read `codex --help` and `gemini --help`, write a user
+config profile for each (no code change needed since card 11), smoke-test each
+with a one-line task, and record the verified snippet in design.md. A built-in
+profile only after a real run.
 
 ### 15 ✅ Dirty-repo warning (about 20 minutes)
 
