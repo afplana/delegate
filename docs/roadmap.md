@@ -186,7 +186,7 @@ non-empty in the source repo.
 
 - Files: `internal/workspace/workspace.go` (`Workspace.Dirty`), `cmd/delegate/run.go`
 
-### 16 🟡 Public release (about 1 hour)
+### 16 ✅ Public release (about 1 hour)
 
 State 2026-11-10: the repo was already public, so the history check came first.
 
@@ -199,7 +199,8 @@ State 2026-11-10: the repo was already public, so the history check came first.
   needs a force push and the content is not secret.
 - ✅ `delegate version` reports the tag for `go install ...@v0.1.0` (no ldflags
   there; falls back to the module version in the build info).
-- ⬜ Tag `v0.1.0` (after this merges). goreleaser skipped: `go install` covers
+- ✅ Tag `v0.1.0` on 2026-11-11 (`da7dfea`). Checked: `go install github.com/afplana/delegate/cmd/delegate@v0.1.0`
+  through proxy.golang.org prints `v0.1.0`. goreleaser skipped: `go install` covers
   the Go audience; add it when someone asks for binaries.
 - ✅ Repo visibility: already public.
 
