@@ -36,11 +36,11 @@ Every card ends the same way: `make check` green, then a commit.
 | `delegate doctor` | ✅ |
 | `delegate skill install` | ✅ card 9c |
 | YAML config merged over the built-ins | ✅ card 11 |
-| Large prompts via stdin | ⬜ card 12 |
-| Clean up old worktrees and runs | ⬜ card 13 |
-| Codex and Gemini profiles, verified | ⬜ card 14 |
+| Large prompts via stdin | ✅ card 12 |
+| Clean up old worktrees and runs | ✅ card 13 |
+| Codex and Gemini profiles, verified | ⏸ card 14 (parked 2026-11-11) |
 | Dirty-repo warning in the result | ✅ card 15 |
-| Public release | ⬜ card 16 |
+| Public release | ✅ card 16 |
 | Recursion guard: a worker cannot start its own delegate run | ✅ card 17 |
 | `--verify`: delegate runs the acceptance commands itself | ✅ card 18 |
 | File allowlist in the plan; `out_of_scope` in the result | ✅ card 19 |
@@ -51,6 +51,17 @@ Every card ends the same way: `make check` green, then a commit.
 | `repo` and `started_at` in `result.json` | ✅ card 24 |
 | Worker isolated from the user's Claude setup | ✅ card 25 |
 | `needs_input` status when the worker hits an ambiguity | ✅ card 26 |
+| Installed profiles named when a CLI is missing | ✅ card 27 |
+| Cost and tokens per **accepted** run in `stats` | ⬜ card 28 |
+| ACP worker transport (one protocol instead of per-CLI flags) | ⬜ card 29 |
+| One permission policy, answered by delegate for every worker | ⬜ card 30 |
+| `--events`: compact progress stream while the worker runs | ⬜ card 31 |
+| `delegate resume`: answer a `needs_input` run in the same worktree | ⬜ card 32 |
+| `delegate mcp`: delegate as an MCP server, long runs as MCP Tasks | ⬜ card 33 |
+| Best-of-N: parallel runs, each verified, ranked | ⬜ card 34 |
+| Escalation ladder named by the caller | ⬜ card 35 |
+| `delegate a2a serve`: delegate as an A2A agent | ⬜ card 36 |
+| Remote A2A agent as a worker | ⬜ card 37 |
 
 ## v1 slices (done)
 
@@ -169,7 +180,10 @@ destructive, so it shows what it would remove and needs `--yes` to act.
 - Idioms: `os.ReadDir`, `fs.FileInfo.ModTime`, `git worktree remove`, `git branch -D`.
 - State on 2026-10-23: 3 leftover worktrees, 21 MB.
 
-### 14 ⬜ Codex and Gemini profiles (personal laptop only)
+### 14 ⏸ Codex and Gemini profiles (personal laptop only)
+
+Parked 2026-11-11: not planned for now. Card 29 may make it smaller (Codex
+has an ACP adapter, `codex-acp`), but that is UNVERIFIED until a real run.
 
 Blocked on the work laptop: only Claude and Cursor are allowed there. The
 personal laptop has Codex and Gemini but no Claude or Cursor, so this one is
@@ -411,6 +425,234 @@ result would come from a worker nobody chose) and an interactive
 `delegate init` (the planner runs delegate non-interactively). The skill asks
 the user to choose from the installed list.
 
+## Agent-of-an-agent cards (from the 2026-11-11 protocol research)
+
+Goal: make delegate the layer between agents, not only between Claude Code and
+one CLI. The three protocols each fit one side of it:
+
+```mermaid
+flowchart LR
+  P[Planner agent<br/>any MCP client] -- "MCP tool + Tasks (33)" --> D[delegate]
+  R[Remote agent] -- "A2A (36)" --> D
+  D -- "ACP over stdio (29-32)" --> W[Worker CLIs]
+  D -- "A2A (37)" --> RW[Remote worker]
+```
+
+- **ACP** (Agent Client Protocol, Zed + JetBrains): JSON-RPC over stdio.
+  `initialize`, `session/new`, `session/load`, `session/prompt`,
+  `session/cancel`; the agent sends `session/update` (message chunks, tool
+  calls, plans, context compactions) and `session/request_permission`. The
+  registry lists 52 agents; Claude through `claude-agent-acp`, Codex through
+  `codex-acp`. <https://agentclientprotocol.com/protocol/overview>,
+  <https://agentclientprotocol.com/get-started/registry>
+- **MCP Tasks** (`io.modelcontextprotocol/tasks`, an official extension in MCP
+  2026-07-28): a tool call returns a task handle; `tasks/get` polls,
+  `tasks/update` answers `input_required`, `tasks/cancel` is best effort.
+  Which clients support it: UNVERIFIED.
+  <https://aaif.io/blog/handle-long-running-mcp-tool-calls-with-the-mcp-tasks-extension>
+- **A2A** v1.0.0 (Linux Foundation): Agent Card (skills, auth schemes,
+  optional signature), task states including `INPUT_REQUIRED` and
+  `AUTH_REQUIRED`, outputs as Artifacts, JSON-RPC / gRPC / REST bindings.
+  <https://a2a-protocol.org/latest/specification/>
+
+The existing contract already lines up: `needs_input` is A2A `INPUT_REQUIRED`
+and MCP `input_required`; `result.json` is an Artifact. Each protocol is an
+adapter around the same `Result` (ports and adapters); the core (worktree,
+verify, allowlist, history) does not change.
+
+Order: measure first (28), then the worker side (29–32), then the planner side
+(33), then the cost/quality strategies once 28 has data (34–35), then A2A (36–37)
+once there is a real remote caller. Cards are numbered in that order.
+
+### 28 ⬜ Cost and tokens per accepted run (about 30 minutes)
+
+`stats` reports cost and median tokens per run, but the number that decides
+"is the cheap worker cheaper?" is cost per **accepted** result: a run that
+needs fixes costs its own tokens plus a planner review and a second run.
+
+- Add `CostPerAccepted` (`CostUSD / Accepted`) and `TokensPerAccepted`
+  (input + output summed over all runs, divided by `Accepted`) to
+  `history.ProfileStats`; print `-` when `Accepted` is 0. Tokens matter
+  because Cursor reports no cost.
+- Show the review coverage next to it (`Reviewed / Runs`): a ratio over 2
+  reviewed runs is noise.
+- Files: `internal/history/history.go` (`Summarize`), `cmd/delegate/history.go`,
+  tests.
+- Seam: `Summarize([]Run)` with hand-built runs (accepted, needs-fixes,
+  unreviewed, no usage).
+- Not covered: the planner's own tokens per run (spent outside delegate).
+  Note it in `design.md` as a known gap.
+- Idioms: zero-divisor guard, `text/tabwriter`.
+
+### 29 ⬜ ACP worker transport (spike 1 hour, then about 3 hours)
+
+Today each CLI needs its own `args`, `output` parser and permission flags
+(`claudeArgs`, `ParseClaudeJSON`, `ParseCursorJSON`). An ACP profile speaks one
+protocol to any listed agent.
+
+- Config: `transport: acp` (default `exec`, today's behaviour). `command` and
+  `args` start the ACP agent (e.g. `claude-agent-acp`); `prompt_via` and
+  `output` are invalid with `acp`.
+- Flow in a new `internal/acp`: `initialize` → `session/new` (cwd = workdir) →
+  `session/prompt` with contract + plan → read `session/update` until the
+  prompt response; map `stopReason` to `status`; summary and question from the
+  agent's message text (same `<delegate-summary>` / `<delegate-question>`
+  blocks). Timeout and Ctrl-C send `session/cancel`, then kill the process group.
+- Write every message to `acp.jsonl` in the log dir.
+- **Spike first**, from a plain terminal: run `claude-agent-acp` by hand and
+  record (a) the exact `stopReason` values and update shapes, (b) whether
+  usage or cost is reported anywhere, (c) whether card 25's isolation holds:
+  project-only settings, no user MCP servers (UNVERIFIED; if it does not hold,
+  stop and decide). Record the findings in `design.md` § Config.
+- Repo config: `transport` joins `command` and `args` as user-file-only keys.
+- Files: `internal/acp/` (client), `internal/runner/runner.go` (dispatch on
+  transport), `internal/config/load.go`, tests.
+- Seam: a fake ACP agent written in Go under `internal/acp/acptest` that
+  replays a scripted conversation over stdin/stdout. No real agent in tests.
+- Idioms: `encoding/json` `Decoder` over a pipe, JSON-RPC id matching,
+  a goroutine per direction, `context` cancellation, `sync.WaitGroup`.
+
+### 30 ⬜ One permission policy for every worker (about 2 hours, after 29)
+
+With ACP the worker asks the client (`session/request_permission`) before a
+tool call. delegate answers from one policy instead of per-CLI flags like
+`--allowedTools`, so every worker gets the same rules.
+
+- Policy in the user config only (a repo must not widen it):
+  `permissions: {allow: ["go *", "make *", "git commit *"], deny: [...]}`;
+  default: deny everything except file edits inside the workdir.
+- Deny wins over allow; anything unmatched is denied and listed in the result
+  as `"denied": [{"tool": ..., "input": ...}]` so the planner sees why a
+  worker could not run tests.
+- File writes outside the workdir are always denied, whatever the policy.
+- Files: `internal/acp/permission.go`, `internal/config/load.go`, tests.
+- Seam: `Decide(policy, request) (allow bool, reason string)`, table-driven.
+- Security review before merging: this moves the boundary from the CLI into
+  delegate.
+- Idioms: `path.Match`, `filepath.Rel` + `strings.HasPrefix(rel, "..")` for
+  escapes.
+
+### 31 ⬜ `--events`: progress while the worker runs (about 1 hour, after 29)
+
+delegate is silent until the worker ends, so a planner can't tell a slow run
+from a stuck one without reading logs. With `--events`, delegate prints one
+compact JSON line per milestone to stderr: `tool_call` (name, file),
+`plan` (step count), `permission_denied`, `compaction`. The final result line
+on stdout does not change.
+
+- Budget: at most one line per tool call, no message text, so the planner can
+  read the stream without spending real tokens.
+- `exec` profiles: only `started` and `finished`.
+- Files: `internal/acp/events.go`, `cmd/delegate/run.go`, tests.
+- Seam: the fake agent from card 29 emits updates; assert the lines on stderr.
+- Idioms: `json.Encoder` per line, a buffered channel between reader and
+  writer.
+
+### 32 ⬜ `delegate resume <run-id> --answer "..."` (about 2 hours)
+
+`needs_input` (card 26) ends the run, and today the planner has to start over
+in a new worktree. Resume continues the same run: same worktree, same branch,
+and the same agent session when the profile can load one.
+
+- ACP profiles: `session/load` with the saved session id
+  (`runs/<id>/session.json`), then `session/prompt` with the answer.
+- `exec` profiles: a new run in the **same** worktree with the original plan,
+  the question and the answer appended. No session memory, but no lost work.
+- The result gets `"resumed_from": "<run-id>"`; `stats` counts a resumed chain
+  once.
+- One answer per call; delegate never answers on its own (still one round per
+  call).
+- Files: `cmd/delegate/resume.go`, `internal/workspace` (reuse a worktree),
+  `internal/history`, tests.
+- Seam: `runCommands(... "resume", id, "--answer", "x" ...)` with a fake
+  worker that asks once, then succeeds.
+- Idioms: subcommand wiring, file-based state.
+
+### 33 ⬜ `delegate mcp`: delegate as an MCP server (about 4 hours)
+
+Today only Claude Code uses delegate, through the skill. As a stdio MCP server,
+any MCP client (Cursor, Claude Desktop, Codex, another agent) can hand off a
+plan.
+
+- Tools: `delegate_run` (plan, profile, verify), `delegate_resume`,
+  `delegate_status`, `delegate_review`, `delegate_stats`. Each returns the
+  same one-line result JSON.
+- Long runs: when the client sends the Tasks extension, return a task handle
+  and serve `tasks/get` / `tasks/update` (for `needs_input`) /
+  `tasks/cancel`. Otherwise `delegate_run` starts in the background and
+  returns the run id, and the client polls `delegate_status`.
+- Same guards as the CLI: plan check, recursion guard, never on
+  `main`/`master` in place. The MCP client never chooses `command` or `args`,
+  only a profile name.
+- Spike first: check the Go MCP SDK's support for the Tasks extension and
+  which clients send it (both UNVERIFIED).
+- Files: `cmd/delegate/mcp.go`, `internal/mcpserver/`, tests.
+- Seam: an in-memory MCP client from the SDK against the server, with a fake
+  `sh` worker.
+- Idioms: a long-lived process with `context`, goroutine per run, a mutex-
+  guarded run table.
+
+### 34 ⬜ Best-of-N (about 2 hours, after 28 has data)
+
+`--n 3` runs the same plan in three worktrees in parallel (same profile, or
+`--profile a,b,c`), runs `--verify` in each, and returns one result per run
+ranked: verify all green, then fewest `out_of_scope` files, then smallest diff.
+The planner reviews only the top one, so N cheap runs replace review rounds.
+
+- Costs N times the worker tokens; worth it only if card 28 shows a low
+  accept rate on first runs.
+- The caller sets N up front; delegate does not add runs on its own.
+- Files: `cmd/delegate/run.go`, `internal/rank/`, tests.
+- Seam: `Rank([]Result) []Result`, table-driven; an end-to-end test with
+  three fake workers.
+- Idioms: `errgroup.Group` with `SetLimit`, `slices.SortStableFunc`.
+
+### 35 ⬜ Escalation ladder named by the caller (about 1.5 hours, after 28)
+
+`--escalate claude-haiku,claude-sonnet`: run the first profile; if `--verify`
+fails, run the next one in a new worktree with the same plan plus the failed
+verify tail; stop at the first green run or the end of the list.
+
+- Does not break "no profile switching": the caller lists every profile
+  before the run starts, and delegate never picks one that is not listed.
+  It does stretch "one task in, one result out". Record this as a decision
+  in `design.md` before coding, with the rejected alternative (the planner
+  calls delegate again itself).
+- The result lists every attempt (`attempts: [...]`), so `stats` keeps each
+  profile's numbers honest.
+- Files: `cmd/delegate/run.go`, tests.
+- Seam: a fake profile that fails verify, then one that passes.
+
+### 36 ⬜ `delegate a2a serve` (about 1 day, needs a real remote caller first)
+
+Expose delegate as an A2A agent: the Agent Card lists one skill per installed
+profile; `SendMessage` with a plan starts a run; `needs_input` maps to
+`INPUT_REQUIRED`, a run to a Task, and the patch plus `result.json` to
+Artifacts.
+
+- Before starting: name the first real remote caller (another team's agent,
+  a hosted agent). Without one, skip this card (generalise on the second real
+  caller).
+- Binds to `127.0.0.1` by default. Any other address needs auth configured in
+  the user file (one of the spec's schemes, e.g. API key or mTLS). The repo
+  file can't enable serving.
+- The remote caller gets the patch as an Artifact, never push access.
+- Files: `cmd/delegate/a2a.go`, `internal/a2aserver/`, tests.
+- Seam: an HTTP test server plus a JSON-RPC client.
+- Idioms: `net/http`, `httptest`, middleware for auth.
+
+### 37 ⬜ Remote A2A agent as a worker (about 1 day, after 36)
+
+`transport: a2a` with a URL: delegate sends the plan as a message and turns the
+returned Artifact (a patch) into commits in its own worktree, so
+`files_changed`, `out_of_scope` and `--verify` work as for a local worker.
+
+- The Agent Card's URL comes only from the user file (same least-privilege
+  rule as `command`).
+- Verify the card's signature when one is present.
+- Files: `internal/a2aclient/`, `internal/runner` (dispatch), tests.
+- Seam: the server from card 36 as the remote agent.
+
 ## Known limitations (v1)
 
 - The worker runs with the permissions its CLI grants in print mode. Cursor
@@ -429,9 +671,11 @@ the user to choose from the installed list.
   `claude -p` works from a plain terminal (seen 2026-11-09/10, Claude Code
   2.1.295; stripping `CLAUDE*`/`ANTHROPIC*` env vars did not help). Run
   delegate from a regular terminal session if you hit it.
-- No progress output while the worker runs; `delegate` is silent until it ends.
+- No progress output while the worker runs; `delegate` is silent until it ends
+  (card 31).
 - macOS and Linux only: on timeout or Ctrl-C the worker's whole process group
   is killed (`syscall.Kill`), which does not compile on Windows.
 - `--in-place` marks new files intent-to-add in your repo's index (that is how
   they show up in the diff). `git reset <file>` undoes it.
-- Worktrees and logs accumulate under `~/.local/state/delegate/` until card 13.
+- Worktrees and logs accumulate under `~/.local/state/delegate/` until you run
+  `delegate clean` (card 13).
