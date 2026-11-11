@@ -8,10 +8,12 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 
 	"github.com/afplana/delegate/internal/config"
 )
 
+// version is set with -ldflags "-X main.version=..." by `make build`.
 var version = "dev"
 
 func main() {
@@ -50,7 +52,11 @@ func runCommands(ctx context.Context, args []string, stdout, stderr io.Writer, c
 	case "skill":
 		return runSkill(args[1:], stdout, stderr)
 	case "version":
-		fmt.Fprintln(stdout, version)
+		var module string
+		if info, ok := debug.ReadBuildInfo(); ok {
+			module = info.Main.Version
+		}
+		fmt.Fprintln(stdout, resolveVersion(version, module))
 		return 0
 	default:
 		fmt.Fprintf(stderr, "delegate: unknown command %q\n", args[0])
@@ -70,4 +76,13 @@ func userConfigFile() string {
 		base = filepath.Join(home, ".config")
 	}
 	return filepath.Join(base, "delegate", "config.yaml")
+}
+
+// resolveVersion prefers the -ldflags version, then the module version Go
+// records for `go install ...@<tag>`. "(devel)" means a local build.
+func resolveVersion(ldflag, module string) string {
+	if ldflag != "dev" || module == "" || module == "(devel)" {
+		return ldflag
+	}
+	return module
 }
