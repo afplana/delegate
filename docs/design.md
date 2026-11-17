@@ -29,7 +29,7 @@ Plan with Opus and code with Sonnet, plan with Opus and code with Cursor — sam
 ```
 delegate run --task plan.md [--profile claude-sonnet] [--repo .] [--in-place] [--timeout 30m] [--verify <cmd>]...   # v1
 delegate review <run-id> accepted|needs-fixes|failed [note...]                            # writes runs/<id>/review.json
-delegate stats                                                                            # per-profile runs, statuses, accept rate, median tokens, cost
+delegate stats                                                                            # per-profile runs, statuses, accept rate, median tokens, cost, tokens/cost per accepted run
 delegate clean [--days 7] [--logs] [--yes]                                                # preview by default; never --force / -D
 delegate version                                                                          # v1
 delegate profiles                                                                         # v1: list profiles and whether their binary is on PATH
@@ -130,6 +130,19 @@ changed file matches none of its entries (exact path, `dir/` or `dir/**`, or a
 the workdir after the worker, in order, all of them even after a failure, with
 the worker's timeout. `timed_out` is omitted when false. It never changes
 `status`, which stays the worker's outcome. Full output: `verify-<n>.log`.
+
+## Stats
+
+`stats` reads every `result.json` and `review.json` under the runs dir. Besides the
+counts it prints **tokens per accepted run** and **cost per accepted run**: the tokens
+(input + output) or cost of every run, including failed and fix-up runs, divided by the
+accepted runs. That is the number that says whether a cheap worker is cheaper per result.
+Each ratio only counts runs that have its data (tokens: runs with `usage`; cost: runs
+with `cost_usd`, which Cursor never reports), so old runs without usage don't make a
+profile look cheaper. `-` means no accepted run has that data yet.
+
+Known gap: the planner's own tokens (writing the plan, reviewing the diff) are spent
+outside delegate and are not counted.
 
 ## Error model
 
