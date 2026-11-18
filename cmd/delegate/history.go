@@ -45,7 +45,7 @@ func runStats(stdout, stderr io.Writer) int {
 	}
 
 	w := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "PROFILE\tRUNS\tOK\tNEEDS_INPUT\tFAILED\tTIMEOUT\tERROR\tACCEPTED/REVIEWED\tMEDIAN_IN\tMEDIAN_OUT\tCOST_USD")
+	fmt.Fprintln(w, "PROFILE\tRUNS\tOK\tNEEDS_INPUT\tFAILED\tTIMEOUT\tERROR\tACCEPTED/REVIEWED\tMEDIAN_IN\tMEDIAN_OUT\tCOST_USD\tTOKENS_PER_ACCEPTED\tCOST_PER_ACCEPTED")
 	for _, s := range history.Summarize(loaded) {
 		medianIn, medianOut := "-", "-"
 		if s.WithUsage > 0 {
@@ -55,9 +55,16 @@ func runStats(stdout, stderr io.Writer) int {
 		if s.CostUSD > 0 {
 			cost = fmt.Sprintf("%.4f", s.CostUSD)
 		}
-		fmt.Fprintf(w, "%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d/%d\t%s\t%s\t%s\n",
+		tokensPerAccepted, costPerAccepted := "-", "-"
+		if v, ok := s.TokensPerAccepted(); ok {
+			tokensPerAccepted = fmt.Sprint(v)
+		}
+		if v, ok := s.CostPerAccepted(); ok {
+			costPerAccepted = fmt.Sprint(v)
+		}
+		fmt.Fprintf(w, "%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d/%d\t%s\t%s\t%s\t%s\t%s\n",
 			s.Profile, s.Runs, s.OK, s.NeedsInput, s.Failed, s.Timeout, s.Error,
-			s.Accepted, s.Reviewed, medianIn, medianOut, cost)
+			s.Accepted, s.Reviewed, medianIn, medianOut, cost, tokensPerAccepted, costPerAccepted)
 	}
 	if err := w.Flush(); err != nil {
 		return 1

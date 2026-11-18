@@ -52,7 +52,7 @@ Every card ends the same way: `make check` green, then a commit.
 | Worker isolated from the user's Claude setup | ✅ card 25 |
 | `needs_input` status when the worker hits an ambiguity | ✅ card 26 |
 | Installed profiles named when a CLI is missing | ✅ card 27 |
-| Cost and tokens per **accepted** run in `stats` | ⬜ card 28 |
+| Cost and tokens per **accepted** run in `stats` | ✅ card 28 |
 | ACP worker transport (one protocol instead of per-CLI flags) | ⬜ card 29 |
 | One permission policy, answered by delegate for every worker | ⬜ card 30 |
 | `--events`: compact progress stream while the worker runs | ⬜ card 31 |
@@ -464,7 +464,11 @@ Order: measure first (28), then the worker side (29–32), then the planner side
 (33), then the cost/quality strategies once 28 has data (34–35), then A2A (36–37)
 once there is a real remote caller. Cards are numbered in that order.
 
-### 28 ⬜ Cost and tokens per accepted run (about 30 minutes)
+### 28 ✅ Cost and tokens per accepted run (about 30 minutes)
+
+Done 2026-11-17 in mode 1/3 (Claude wrote the tests and snippets, Alain applied
+them). Ratios are methods on `ProfileStats` returning `(value, ok)`; each one
+counts only runs that have its data (see design.md § Stats).
 
 `stats` reports cost and median tokens per run, but the number that decides
 "is the cheap worker cheaper?" is cost per **accepted** result: a run that

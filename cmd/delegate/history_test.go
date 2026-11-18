@@ -27,6 +27,8 @@ func TestReviewThenStats(t *testing.T) {
 	out := stdout.String()
 	assert.Contains(t, out, "PROFILE")
 	assert.Regexp(t, `fake\s+1\s+1\s+0\s+0\s+0\s+0\s+1/1`, out, "runs, ok, needs_input, failed, timeout, error, accepted/reviewed")
+	assert.Regexp(t, `COST_USD\s+TOKENS_PER_ACCEPTED\s+COST_PER_ACCEPTED\n`, out, "the two new columns come last")
+	assert.Regexp(t, `(?m)^fake\s.*1/1\s+-\s+-\s+-\s+-\s+-\s*$`, out, "a text worker reports no usage: medians, cost and both ratios print -")
 }
 
 func TestReview_RejectsBadInput(t *testing.T) {

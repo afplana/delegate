@@ -110,6 +110,8 @@ type ProfileStats struct {
 	WithUsage                                    int
 	MedianInput, MedianOutput                    int64
 	CostUSD                                      float64
+	Tokens                                       int64
+	AcceptedWithUsage, AcceptedWithCost          int
 }
 
 // Summarize groups runs by profile, sorted by profile name.
@@ -136,17 +138,25 @@ func Summarize(runs []Run) []ProfileStats {
 			case "error":
 				s.Error++
 			}
+			accepted := r.Verdict == "accepted"
 			if r.Verdict != "" {
 				s.Reviewed++
-				if r.Verdict == "accepted" {
+				if accepted {
 					s.Accepted++
 				}
 			}
 			if r.Usage != nil {
 				inputs = append(inputs, r.Usage.InputTokens)
 				outputs = append(outputs, r.Usage.OutputTokens)
+				s.Tokens += r.Usage.InputTokens + r.Usage.OutputTokens
+				if accepted {
+					s.AcceptedWithUsage++
+				}
 				if r.Usage.CostUSD != nil {
 					s.CostUSD += *r.Usage.CostUSD
+					if accepted {
+						s.AcceptedWithCost++
+					}
 				}
 			}
 		}
@@ -155,6 +165,25 @@ func Summarize(runs []Run) []ProfileStats {
 		stats = append(stats, s)
 	}
 	return stats
+}
+
+// TokensPerAccepted divides the input plus output tokens of every run with
+// usage by the accepted runs among them, rounded down. ok is false when none
+// of them was accepted.
+func (s ProfileStats) TokensPerAccepted() (tokens int64, ok bool) {
+	if s.AcceptedWithUsage == 0 {
+		return 0, false
+	}
+	return s.Tokens / int64(s.AcceptedWithUsage), true
+}
+
+// CostPerAccepted divides the cost of every run that reported one by the
+// accepted runs among them. ok is false when none of them was accepted.
+func (s ProfileStats) CostPerAccepted() (costUSD float64, ok bool) {
+	if s.AcceptedWithCost == 0 {
+		return 0, false
+	}
+	return s.CostUSD / float64(s.AcceptedWithCost), true
 }
 
 // median returns the middle value, or the mean of the middle two; 0 for none.
